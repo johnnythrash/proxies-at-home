@@ -236,6 +236,7 @@ export async function batchFetchCards(
   if (!cardInfos || cardInfos.length === 0) return results;
 
   const lang = language.toLowerCase();
+  const normalizedPreferredSets = preferredSets.map((set) => set.toLowerCase());
 
   debugLog(
     `[batchFetchCards] Starting batch fetch for ${cardInfos.length} cards, lang=${lang}`
@@ -478,7 +479,7 @@ export async function batchFetchCards(
 
       if (card) {
         // Check if current match is in a preferred set
-        if (card.set && preferredSets.includes(card.set)) {
+        if (card.set && normalizedPreferredSets.includes(card.set.toLowerCase())) {
           debugLog(`[batchFetchCards] "${ci.name}" already matches preferred set ${card.set}`);
           continue;
         }
@@ -491,47 +492,43 @@ export async function batchFetchCards(
     if (cardsToCheckForUpgrade.length > 0) {
       debugLog(`[batchFetchCards] Checking ${cardsToCheckForUpgrade.length} cards for preferred set versions: ${preferredSets.join(', ')}`);
 
-      // We can't batch this easily with Scryfall (OR queries with set filters is complex).
-      // However, we can use a clever OR query:
-      // (name:"Sol Ring" (set:LEA OR set:MPS)) OR (name:"Giant Growth" (set:LEA OR set:MPS))
-      // Keep batch size small.
+      // The collection endpoint accepts 75 exact identifiers per request. Building
+      // name+set identifiers lets us check many preferred printings at once instead
+      // of issuing a search request for every ten imported cards.
+      const preferredIdentifiers = cardsToCheckForUpgrade.flatMap((ci) =>
+        normalizedPreferredSets.map((set) => ({
+          name: ci.name,
+          set: set.toLowerCase(),
+        }))
+      );
 
-      const UPGRADE_BATCH_SIZE = 10;
-      const setFilterClause = `(${preferredSets.map(s => `set:${s}`).join(' OR ')})`;
-
-      for (let i = 0; i < cardsToCheckForUpgrade.length; i += UPGRADE_BATCH_SIZE) {
-        const batch = cardsToCheckForUpgrade.slice(i, i + UPGRADE_BATCH_SIZE);
+      for (const identifiers of chunkArray(preferredIdentifiers, 75)) {
         await delayScryfallRequest();
 
         try {
-          // Query: (name:"A" OR name:"B") (set:X OR set:Y)
-          // This finds ANY of the names if they exist in ANY of the preferred sets
-          const nameClauses = batch.map(ci => `name:"${ci.name.replace(/"/g, '\\"')}"`).join(' OR ');
-          const q = `(${nameClauses}) ${setFilterClause} include:extras unique:prints`;
-
-          debugLog(`[batchFetchCards] Preferred set query: ${q}`);
-
-          const response = await AX.get<ScryfallResponse>(
-            "https://api.scryfall.com/cards/search",
-            { params: { q } } // unique:prints implied by query? No, explicit param safer.
+          const response = await AX.post<CollectionResponse>(
+            "https://api.scryfall.com/cards/collection",
+            { identifiers }
           );
 
           if (response.data?.data) {
             for (const upgradeCard of response.data.data) {
               if (!upgradeCard.name) continue;
 
-              // Found a preferred version!
-              // For "Smart Import", we prefer this over the default version.
-              // Update the results map.
-              // Note: Scryfall search returns defaults. If multiple preferred sets match, 
-              // Scryfall's default sort (released) usually wins, or we can sort explicitly?
-              // We trust Scryfall's order here.
-
               const key = upgradeCard.name.toLowerCase();
               const current = results.get(key);
+              const currentPriority = current?.set
+                ? normalizedPreferredSets.indexOf(current.set.toLowerCase())
+                : -1;
+              const upgradePriority = upgradeCard.set
+                ? normalizedPreferredSets.indexOf(upgradeCard.set.toLowerCase())
+                : -1;
 
-              // Only swap if it's actually a different set/printing
-              if (current?.set !== upgradeCard.set) {
+              // Preserve the user's preferred-set ordering when several sets match.
+              if (
+                upgradePriority !== -1 &&
+                (currentPriority === -1 || upgradePriority < currentPriority)
+              ) {
                 debugLog(`[batchFetchCards] Upgrading "${upgradeCard.name}" from ${current?.set} to ${upgradeCard.set} (Preferred)`);
                 results.set(key, upgradeCard);
                 insertOrUpdateCard(upgradeCard);

@@ -12,7 +12,7 @@ echo "Ref: $REF"
 # Check if this is a promote-only workflow dispatch
 if [[ "$EVENT_NAME" == "workflow_dispatch" && "$PROMOTE_STABLE" == "true" ]]; then
   echo "Promote stable workflow triggered"
-  CURRENT_VERSION=$(jq -r .version package.json)
+  CURRENT_VERSION=$(node -p "require('./package.json').version")
   echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
   echo "should_release=false" >> $GITHUB_OUTPUT
   echo "update_stable=true" >> $GITHUB_OUTPUT
@@ -30,7 +30,7 @@ if [[ "$REF" == refs/tags/v* ]]; then
   
   # Major releases also update stable
   MAJOR=$(echo "$VERSION" | cut -d. -f1)
-  OLD_VERSION=$(git show HEAD~1:package.json 2>/dev/null | jq -r .version || echo "0.0.0")
+  OLD_VERSION=$(git show HEAD~1:package.json 2>/dev/null | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => console.log(JSON.parse(s).version))" || echo "0.0.0")
   OLD_MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
   if [[ "$MAJOR" != "$OLD_MAJOR" ]]; then
     echo "update_stable=true" >> $GITHUB_OUTPUT
@@ -44,7 +44,7 @@ fi
 if [[ "$REF" == refs/heads/release/v* ]]; then
    echo "Running on Release Branch"
    # Version is already set in package.json on this branch
-   VERSION=$(jq -r .version package.json)
+   VERSION=$(node -p "require('./package.json').version")
    echo "version=$VERSION" >> $GITHUB_OUTPUT
    echo "should_release=true" >> $GITHUB_OUTPUT
    
@@ -85,7 +85,7 @@ if [[ "$COMMIT_MSG" == *"chore: bump version"* ]]; then
 fi
 
 # Determine base version: use highest remote tag or package.json version
-CURRENT_VERSION=$(jq -r .version package.json)
+CURRENT_VERSION=$(node -p "require('./package.json').version")
 IFS='.' read -r P_MAJOR P_MINOR P_PATCH <<< "${CURRENT_VERSION%%-*}"
 
 # Check highest tag on remote

@@ -151,6 +151,21 @@ vi.mock('../ArtworkModal', () => ({
 
 vi.mock('../common', () => ({
     AutoTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    ToggleButtonGroup: ({
+        options,
+        onChange,
+    }: {
+        options: Array<{ id: string; label: string }>;
+        onChange: (id: string) => void;
+    }) => (
+        <div>
+            {options.map((option) => (
+                <button key={option.id} onClick={() => onChange(option.id)}>
+                    {option.label}
+                </button>
+            ))}
+        </div>
+    ),
 }));
 
 import { DecklistUploader } from './DecklistUploader';

@@ -32,7 +32,19 @@ vi.mock('./dbUtils', () => ({
     addRemoteImage: vi.fn((urls) => Promise.resolve(urls[0] || 'mock_image_id')),
     createLinkedBackCardsBulk: vi.fn()
 }));
-vi.mock('../db');      // Mock the database itself
+vi.mock('../db', () => ({
+    db: {
+        cards: {
+            where: vi.fn(() => ({
+                equals: vi.fn(() => ({
+                    count: vi.fn(() => Promise.resolve(1))
+                }))
+            })),
+            update: vi.fn()
+        },
+        transaction: vi.fn((_mode, _table, callback) => callback())
+    }
+}));
 
 // Mock the store for project ID access
 vi.mock('@/store', () => ({
@@ -42,7 +54,8 @@ vi.mock('@/store', () => ({
     useSettingsStore: {
         getState: () => ({
             preferredArtSource: 'scryfall',
-            autoImportTokens: true
+            autoImportTokens: true,
+            applyScmPreset: vi.fn()
         })
     },
     useUserPreferencesStore: {

@@ -11,6 +11,7 @@ const mockState = vi.hoisted(() => ({
 const mockSetters = vi.hoisted(() => ({
     setColumns: vi.fn(),
     setRows: vi.fn(),
+    applyScmPreset: vi.fn(),
 }));
 
 vi.mock('@/store/settings', () => ({
@@ -20,6 +21,7 @@ vi.mock('@/store/settings', () => ({
             rows: mockState.rows,
             setColumns: mockSetters.setColumns,
             setRows: mockSetters.setRows,
+            applyScmPreset: mockSetters.applyScmPreset,
         };
         return selector(state);
     }),
@@ -29,6 +31,13 @@ vi.mock('flowbite-react', () => ({
     Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
         <label htmlFor={htmlFor}>{children}</label>
     ),
+    Button: ({
+        children,
+        onClick,
+    }: {
+        children: React.ReactNode;
+        onClick?: () => void;
+    }) => <button onClick={onClick}>{children}</button>,
 }));
 
 vi.mock('../../LayoutSettings/PageSizeControl', () => ({
@@ -36,6 +45,7 @@ vi.mock('../../LayoutSettings/PageSizeControl', () => ({
 }));
 
 vi.mock('@/components/common', () => ({
+    AutoTooltip: () => null,
     NumberInput: React.forwardRef(({
         id,
         className,

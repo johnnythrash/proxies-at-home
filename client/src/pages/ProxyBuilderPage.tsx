@@ -247,9 +247,9 @@ export default function ProxyBuilderPage() {
   const filtersHash = useMemo(() => {
     return [
       filterManaCost.join(','),
-      filterColors.sort().join(','),
-      filterTypes.sort().join(','),
-      filterCategories.sort().join(','),
+      [...filterColors].sort().join(','),
+      [...filterTypes].sort().join(','),
+      [...filterCategories].sort().join(','),
       filterMatchType
     ].join('|');
   }, [filterManaCost, filterColors, filterTypes, filterCategories, filterMatchType]);

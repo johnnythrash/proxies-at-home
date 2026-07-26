@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run --silent",
     "test:ui": "vitest --ui --coverage.enabled=true",
-    "dev": "NODE_ENV=development nodemon --exec tsx src/index.ts",
+    "dev": "nodemon --exec tsx src/index.ts",
     "build": "rimraf dist && tsc -p tsconfig.build.json && cpx \"cardbacks/**/*\" dist/server/cardbacks",
     "start": "node dist/server/src/index.js",
     "lint": "eslint ."

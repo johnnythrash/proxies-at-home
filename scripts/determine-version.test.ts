@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
 describe('determine-version.sh', () => {
+    const bashExecutable = process.platform === 'win32'
+        ? 'C:\\Program Files\\Git\\bin\\bash.exe'
+        : 'bash';
     let tempDir: string;
     let scriptPath: string;
     let githubOutputFile: string;
@@ -37,9 +40,9 @@ describe('determine-version.sh', () => {
         execSync(`git commit -m "chore: bump version"`, { cwd: tempDir, stdio: 'ignore' });
         fs.writeFileSync(path.join(tempDir, 'dummy2'), 'change2');
         execSync('git add dummy2', { cwd: tempDir, stdio: 'ignore' });
-        execSync(`git commit -m "${commitMsg}"`, { cwd: tempDir, stdio: 'ignore' });
+        execFileSync('git', ['commit', '-m', commitMsg], { cwd: tempDir, stdio: 'ignore' });
         try {
-            execSync(`bash "${scriptPath}"`, {
+            execFileSync(bashExecutable, [scriptPath], {
                 cwd: tempDir,
                 env: {
                     ...process.env,

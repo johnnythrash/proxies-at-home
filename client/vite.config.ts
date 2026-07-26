@@ -36,8 +36,8 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    tailwindcss(),
-    flowbiteReact(),
+    !process.env.VITEST && tailwindcss(),
+    !process.env.VITEST && flowbiteReact(),
     !process.env.VITEST && VitePWA({
       selfDestroying: true,
       registerType: "autoUpdate",
@@ -73,15 +73,13 @@ export default defineConfig({
     pool: 'threads',
     environment: 'jsdom',
     setupFiles: [path.resolve(__dirname, './src/vitest.setup.ts')],
-    globalSetup: path.resolve(__dirname, './src/test/globalSetup.ts'),
-    teardownTimeout: 1000,
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
     // Increase timeout to prevent flaky failures during coverage runs
     testTimeout: 120000,
     hookTimeout: 120000,
     // Retry flaky tests once before marking as failed
     retry: 5,
-    reporters: ['default', 'hanging-process'],
+    reporters: ['default'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

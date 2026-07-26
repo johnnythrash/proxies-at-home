@@ -122,6 +122,26 @@ export class ImportOrchestrator {
 
         if (!settings.projectId) throw new Error("No active project");
 
+        // Start an empty project in the preferred print-and-cut layout. Once cards
+        // exist, imports must not overwrite layout changes the user made.
+        const existingCardCount = await db.cards
+            .where('projectId')
+            .equals(settings.projectId)
+            .count();
+        if (existingCardCount === 0) {
+            const layout = useSettingsStore.getState();
+            const isSilhouetteLayout =
+                layout.pageOrientation === 'landscape' &&
+                layout.pageWidth === 11 &&
+                layout.pageHeight === 8.5 &&
+                layout.columns === 4 &&
+                layout.rows === 2 &&
+                layout.registrationMarks === '3';
+            if (!isSilhouetteLayout) {
+                layout.applyScmPreset();
+            }
+        }
+
         // 1. Bucket Intents
         const directIntents: ImportIntent[] = [];
         const mpcSearchIntents: ImportIntent[] = [];

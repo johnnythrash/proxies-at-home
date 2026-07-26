@@ -443,8 +443,8 @@ describe("useSettingsStore", () => {
             resetSettings();
 
             const state = useSettingsStore.getState();
-            expect(state.columns).toBe(3);
-            expect(state.rows).toBe(3);
+            expect(state.columns).toBe(4);
+            expect(state.rows).toBe(2);
             expect(state.zoom).toBe(1);
             expect(state.sortBy).toBe("manual");
         });
