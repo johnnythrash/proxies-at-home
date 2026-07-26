@@ -65,7 +65,7 @@ export function startServer(port: number = 3001): Promise<number> {
   app.use("/api/share", shareRouter);
 
   return new Promise((resolve) => {
-    const server = app.listen(port, "0.0.0.0", () => {
+    const server = app.listen(port, "127.0.0.1", () => {
       const addr = server.address();
       const actualPort = typeof addr === "string" ? port : addr?.port || port;
       console.log(`Server listening on port ${actualPort}`);
