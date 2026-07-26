@@ -237,8 +237,8 @@ export function ArtworkModalTabBars({
 >) {
     if (showCardbackLibrary) return null;
     return (
-        <div className="hidden lg:block max-lg:portrait:block">
-            <div className="flex items-start justify-between">
+        <div className="hidden border-b border-gray-200 bg-gray-50 p-2 lg:block max-lg:portrait:block dark:border-gray-600 dark:bg-gray-800">
+            <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 overflow-hidden">
                     <TabBar
                         tabs={[
@@ -249,7 +249,7 @@ export function ArtworkModalTabBars({
                         onTabChange={(face) =>
                             onFaceTabChange(face as "front" | "back")
                         }
-                        variant="primary"
+                        variant="segmented"
                     />
                 </div>
                 <div className="lg:hidden p-2">
@@ -291,7 +291,8 @@ export function ArtworkModalTabBars({
                         setActiveTab(tab as "artwork" | "settings");
                     }
                 }}
-                variant="secondary"
+                variant="segmented"
+                className="mt-2 max-w-md"
             />
         </div>
     );

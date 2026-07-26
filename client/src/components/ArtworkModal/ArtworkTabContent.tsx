@@ -123,9 +123,9 @@ export function ArtworkTabContent({
     const cardName = selectedFace === 'back' ? tabLabels.back : tabLabels.front;
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 rounded-b-2xl overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Header */}
-            <header className="flex-none bg-white dark:bg-gray-700 p-6 pb-4 space-y-4">
+            <header className="flex-none border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-600 dark:bg-gray-700">
                 {/* Mobile Landscape Only: Toggles moved from Sidebar */}
                 <div className="hidden max-lg:landscape:flex gap-2 mb-2">
                     <div className="flex-1">
@@ -166,15 +166,15 @@ export function ArtworkTabContent({
                 )}
 
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                         <Checkbox
                             checked={applyToAll}
                             onChange={(e) => setApplyToAll(e.target.checked)}
-                            className="size-5"
+                            className="size-4 rounded"
                             data-testid="apply-to-all-checkbox"
                         />
-                        <span className="text-base dark:text-white">Apply to all cards named "{cardName}"</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-200">Apply to all cards named "{cardName}"</span>
                     </label>
 
                     {selectedFace === 'back' && linkedBackCard && (
@@ -282,7 +282,7 @@ export function ArtworkTabContent({
             </main>
 
             {/* Footer - always visible, but toggle and filter are hidden when in cardback library mode */}
-            <footer className="flex-none p-4 bg-white dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex flex-col gap-2">
+            <footer className="flex-none bg-white p-3 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex flex-col gap-2">
                 {/* Source toggle - mobile portrait only (desktop has inline toggle, landscape has sidebar toggle) */}
                 {!showCardbackLibraryGrid && (
                     <div className="lg:hidden max-lg:landscape:hidden">

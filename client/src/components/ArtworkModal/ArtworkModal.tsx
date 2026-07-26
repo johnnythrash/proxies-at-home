@@ -26,6 +26,7 @@ import {
   ArtworkModalSidebarHeader,
   ArtworkModalTabBars,
 } from "./ArtworkModalHeader";
+import { ArtworkDetailsPanel } from "./ArtworkDetailsPanel";
 
 import { useArtworkSearch } from "./hooks/useArtworkSearch";
 import { useCardbackManagement } from "./hooks/useCardbackManagement";
@@ -330,10 +331,18 @@ export function ArtworkModal() {
           />
         }
       >
-        <div
-          ref={contentRef}
-          className="flex-1 flex flex-col overflow-hidden max-lg:landscape:overflow-auto min-h-0"
-        >
+        <div className="flex flex-1 min-h-0 overflow-hidden max-lg:landscape:overflow-auto">
+          {rModalCard && (
+            <ArtworkDetailsPanel
+              card={rSelectedFace === "back" && rLinkedBackCard ? rLinkedBackCard : rModalCard}
+              imageUrl={rFinalProcessedDisplayUrl}
+              displayName={rDisplayName}
+            />
+          )}
+          <div
+            ref={contentRef}
+            className="flex min-w-0 flex-1 flex-col overflow-hidden min-h-0"
+          >
           <ArtworkModalTabBars
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -389,6 +398,7 @@ export function ArtworkModal() {
               <ArtworkBleedSettings selectedFace={selectedFace} />
             </div>
           )}
+          </div>
         </div>
       </ResponsiveModal>
       <AdvancedSearch
