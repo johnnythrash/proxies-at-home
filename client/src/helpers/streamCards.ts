@@ -354,6 +354,28 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
             }
         }
     }
+    else {
+        // Scryfall imports should feel immediate too. Add lightweight cards now
+        // and fill them as the streamed lookup results arrive.
+        for (const entry of quantityByKey.values()) {
+            const placeholderCards = entry.instances.map((instance) => createCardOption({
+                name: entry.info.name,
+                lang: language,
+                imageId: undefined,
+                category: entry.info.category,
+                isToken: entry.info.isToken,
+                overrides: entry.info.overrides,
+                projectId,
+                source: ImageSource.Scryfall,
+            }, instance.order));
+
+            const added = await undoableAddCards(placeholderCards);
+            entry.placeholderUuids = added.map((card) => card.uuid);
+            cardsAdded += added.length;
+            addedCardUuids.push(...entry.placeholderUuids);
+            if (cardsAdded === added.length) onFirstCard?.();
+        }
+    }
 
     if (uniqueInfos.length === 0) {
         onComplete?.();
@@ -588,6 +610,7 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
                                     token_parts: cardData.token_parts,
                                     needs_token: cardData.needs_token,
                                     isToken: cardData.isToken,
+                                    isFlipped: cardData.isFlipped,
                                     hasBuiltInBleed: false,
                                     needsEnrichment: false,
                                     source: ImageSource.Scryfall,

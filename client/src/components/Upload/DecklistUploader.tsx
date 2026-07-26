@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Button, Modal, ModalBody, ModalHeader, Select, Textarea } from "flowbite-react";
-import { ExternalLink, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, History, RotateCcw, Search, Sparkles } from "lucide-react";
 import { ToggleButtonGroup } from "@/components/common";
 import { parseDeckList } from "@/helpers/importParsers";
 import { TCG_ORDER, getTcgConfig } from "@/config/tcgConfig";
@@ -31,12 +31,21 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
     const activeTcg = useSettingsStore((s) => s.activeTcg);
     const setActiveTcg = useSettingsStore((s) => s.setActiveTcg);
     const clearAllCardsAndImages = useCardsStore((state) => state.clearAllCardsAndImages);
-    const { processCards, cancel: cancelCardFetch } = useCardImport({
+    const [importHistory, setImportHistory] = useState<Array<{ text: string; importedAt: number }>>([]);
+    const { processCards, cancel: cancelCardFetch, phase, progress, summary, retryFailed } = useCardImport({
         onComplete: () => {
-            setDeckText("");
             onUploadComplete?.();
         }
     });
+
+    useEffect(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem("proxxied-import-history") ?? "[]");
+            if (Array.isArray(saved)) setImportHistory(saved.slice(0, 5));
+        } catch {
+            setImportHistory([]);
+        }
+    }, []);
 
     const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
     const [showNoTokensModal, setShowNoTokensModal] = useState(false);
@@ -73,6 +82,17 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
         }));
 
         if (!enrichedIntents.length) return;
+        const nextHistory = [
+            { text, importedAt: Date.now() },
+            ...importHistory.filter((entry) => entry.text !== text),
+        ].slice(0, 5);
+        setImportHistory(nextHistory);
+        try {
+            localStorage.setItem("proxxied-import-history", JSON.stringify(nextHistory));
+        } catch {
+            // History is optional; importing should still work if browser
+            // storage is unavailable.
+        }
         onUploadComplete?.();
         await processCards(enrichedIntents);
     };
@@ -243,9 +263,59 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
             </div>
 
 
-            <div className="flex flex-col gap-3">
-                <Button color="blue" size="lg" onClick={handleSubmit} disabled={!deckText.trim()}>
-                    Import Cards
+            {(phase === "looking-up" || phase === "downloading") && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/40">
+                    <div className="mb-2 flex items-center justify-between text-sm font-medium text-blue-900 dark:text-blue-100">
+                        <span>{phase === "looking-up" ? "Looking up cards…" : "Downloading artwork…"}</span>
+                        <span>{progress}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900">
+                        <div className="h-full bg-blue-600 transition-all" style={{ width: `${progress}%` }} />
+                    </div>
+                </div>
+            )}
+
+            {summary && phase === "complete" && (
+                <div className={`rounded-lg border p-3 ${summary.failed > 0 ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30" : "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30"}`}>
+                    <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                        {summary.failed > 0 ? <AlertTriangle className="size-4 text-amber-600" /> : <CheckCircle2 className="size-4 text-green-600" />}
+                        Import complete
+                    </div>
+                    <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                        {summary.matched} matched · {summary.failed} not found
+                    </div>
+                    {summary.failed > 0 && (
+                        <Button color="amber" size="xs" className="mt-2" onClick={() => void retryFailed()}>
+                            <RotateCcw className="mr-1 size-3.5" /> Retry failed
+                        </Button>
+                    )}
+                </div>
+            )}
+
+            {importHistory.length > 0 && (
+                <details className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                        <History className="size-4" /> Recent imports
+                    </summary>
+                    <div className="space-y-1 border-t border-gray-200 p-2 dark:border-gray-700">
+                        {importHistory.map((entry) => (
+                            <button
+                                key={entry.importedAt}
+                                type="button"
+                                className="w-full truncate rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                title={entry.text}
+                                onClick={() => setDeckText(entry.text)}
+                            >
+                                {entry.text.split(/\r?\n/)[0]} · {new Date(entry.importedAt).toLocaleDateString()}
+                            </button>
+                        ))}
+                    </div>
+                </details>
+            )}
+
+            <div className="sticky bottom-0 z-10 flex flex-col gap-3 bg-gray-100/95 py-2 backdrop-blur dark:bg-gray-700/95">
+                <Button color="blue" size="lg" onClick={handleSubmit} disabled={!deckText.trim() || phase === "looking-up" || phase === "downloading"}>
+                    {phase === "looking-up" || phase === "downloading" ? "Importing…" : "Import Cards"}
                 </Button>
                 <Button
                     color="indigo"

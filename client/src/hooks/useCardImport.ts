@@ -1,8 +1,19 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { ImportOrchestrator } from "@/helpers/ImportOrchestrator";
 import type { ImportIntent } from "@/helpers/importParsers";
 import { useToastStore } from "@/store/toast";
 import { handleAutoImportTokens } from "@/helpers/tokenImportHelper";
+import { db } from "@/db";
+import { useProjectStore } from "@/store/projectStore";
+
+export type ImportPhase = "idle" | "looking-up" | "downloading" | "complete" | "error";
+
+export interface ImportSummary {
+    requested: number;
+    matched: number;
+    failed: number;
+    failedNames: string[];
+}
 
 interface UseCardImportOptions {
     /**
@@ -21,6 +32,10 @@ export interface UseCardImportReturn {
      * Cancel any active import operation.
      */
     cancel: () => void;
+    phase: ImportPhase;
+    progress: number;
+    summary: ImportSummary | null;
+    retryFailed: () => Promise<void>;
 }
 
 /**
@@ -38,6 +53,10 @@ export function useCardImport(options: UseCardImportOptions = {}): UseCardImport
     const fetchGenerationRef = useRef(0);
     // Use ref for onComplete to avoid stale closure issues
     const onCompleteRef = useRef(options.onComplete);
+    const lastIntentsRef = useRef<ImportIntent[]>([]);
+    const [phase, setPhase] = useState<ImportPhase>("idle");
+    const [progress, setProgress] = useState(0);
+    const [summary, setSummary] = useState<ImportSummary | null>(null);
     onCompleteRef.current = options.onComplete;
 
     const processCards = useCallback(async (intents: ImportIntent[]) => {
@@ -54,9 +73,18 @@ export function useCardImport(options: UseCardImportOptions = {}): UseCardImport
             return;
         }
 
+        lastIntentsRef.current = intents;
+        setPhase("looking-up");
+        setProgress(0);
+        setSummary(null);
+
         try {
             await ImportOrchestrator.process(intents, {
                 signal: fetchController.current.signal,
+                onProgress: (processed, total) => {
+                    setPhase(processed === 0 ? "looking-up" : "downloading");
+                    setProgress(total > 0 ? Math.round((processed / total) * 100) : 0);
+                },
                 onComplete: () => {
                     // Use ref to get latest callback
                     onCompleteRef.current?.();
@@ -65,12 +93,38 @@ export function useCardImport(options: UseCardImportOptions = {}): UseCardImport
                     void handleAutoImportTokens({ silent: true });
                 }
             });
+
+            const requested = intents.reduce((total, intent) => total + (intent.quantity ?? 1), 0);
+            let failedCards: Awaited<ReturnType<typeof db.cards.toArray>> = [];
+            try {
+                const projectId = useProjectStore.getState().currentProjectId;
+                const importedNames = new Set(intents.map((intent) => intent.name.toLowerCase()));
+                failedCards = projectId
+                    ? (await db.cards.where("projectId").equals(projectId).toArray())
+                        .filter((card) => importedNames.has(card.name.toLowerCase()) && !!card.lookupError)
+                    : [];
+            } catch {
+                // The import itself succeeded. A summary lookup should never
+                // turn that success into an error state.
+            }
+            const failedNames = [...new Set(failedCards.map((card) => card.name))];
+            setSummary({
+                requested,
+                matched: Math.max(0, requested - failedCards.length),
+                failed: failedCards.length,
+                failedNames,
+            });
+            setPhase("complete");
+            setProgress(100);
         } catch (err: unknown) {
             // Ignore errors from stale fetches
             if (currentGeneration !== fetchGenerationRef.current) return;
 
             if (err instanceof Error && err.name !== "AbortError") {
+                setPhase("error");
                 useToastStore.getState().showErrorToast(err.message || "Something went wrong while fetching cards.");
+            } else if (err instanceof Error) {
+                setPhase("idle");
             } else if (!(err instanceof Error)) {
                 useToastStore.getState().showErrorToast("An unknown error occurred while fetching cards.");
             }
@@ -85,7 +139,18 @@ export function useCardImport(options: UseCardImportOptions = {}): UseCardImport
     const cancel = useCallback(() => {
         fetchController.current?.abort();
         fetchController.current = null;
+        setPhase("idle");
     }, []);
 
-    return { processCards, cancel };
+    const retryFailed = useCallback(async () => {
+        const failedNames = new Set(summary?.failedNames.map((name) => name.toLowerCase()) ?? []);
+        const retryIntents = lastIntentsRef.current.filter((intent) =>
+            failedNames.has(intent.name.toLowerCase())
+        );
+        if (retryIntents.length > 0) {
+            await processCards(retryIntents);
+        }
+    }, [processCards, summary]);
+
+    return { processCards, cancel, phase, progress, summary, retryFailed };
 }

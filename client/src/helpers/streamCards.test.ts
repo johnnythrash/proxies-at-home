@@ -5,6 +5,7 @@ import { streamCards } from './streamCards';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { undoableAddCards } from './undoableActions';
 import { addRemoteImage } from './dbUtils';
+import { db } from '@/db';
 
 // ------------------------------------------------------------------
 // Mocks
@@ -33,10 +34,12 @@ vi.mock('@/db', () => ({
             orderBy: vi.fn(() => ({
                 last: vi.fn().mockResolvedValue({ order: 100 }), // initialMaxOrder
             })),
+            update: vi.fn().mockResolvedValue(1),
         },
         cardbacks: {
             toArray: vi.fn().mockResolvedValue([]), // Default to empty cardbacks
         },
+        transaction: vi.fn((_mode, _table, callback) => callback()),
     },
     ImageSource,
 }));
@@ -264,11 +267,9 @@ describe('streamCards', () => {
             await streamCards(options);
 
             // Should have isToken: false (not undefined)
-            expect(undoableAddCards).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({ name: 'Lightning Bolt', isToken: false })
-                ]),
-                undefined
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-bolt',
+                expect.objectContaining({ name: 'Lightning Bolt', isToken: false })
             );
         });
     });
@@ -296,9 +297,9 @@ describe('streamCards', () => {
 
         await streamCards(options);
 
-        expect(mockAddCards).toHaveBeenCalledWith(
-            expect.arrayContaining([expect.objectContaining({ name: 'Missing Card', imageId: undefined })]),
-            undefined
+        expect(db.cards.update).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ lookupError: 'Card not found' })
         );
     });
 
@@ -341,15 +342,13 @@ describe('streamCards', () => {
             // Second call: front face art for the main card (since back face name was imported)
             expect(addRemoteImage).toHaveBeenNthCalledWith(2, ['http://front-img'], 1, 'scryfall', undefined);
             // Should have passed isFlipped: true
-            expect(undoableAddCards).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        name: 'Delver of Secrets',
-                        imageId: 'front-img-id',
-                        isFlipped: true
-                    })
-                ]),
-                undefined
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-1',
+                expect.objectContaining({
+                    name: 'Delver of Secrets',
+                    imageId: 'front-img-id',
+                    isFlipped: true,
+                })
             );
         });
 
@@ -386,14 +385,12 @@ describe('streamCards', () => {
             await streamCards(options);
 
             // Should NOT have isFlipped for front face imports
-            expect(undoableAddCards).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        name: 'Delver of Secrets',
-                        isFlipped: undefined
-                    })
-                ]),
-                undefined
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-1',
+                expect.objectContaining({
+                    name: 'Delver of Secrets',
+                    isFlipped: undefined,
+                })
             );
         });
 
@@ -549,11 +546,9 @@ describe('streamCards', () => {
             expect(addRemoteImage).toHaveBeenCalledWith(
                 ['https://custom-art.com/forest-alt.png'], 1, 'mpc'
             );
-            expect(undoableAddCards).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({ name: 'Forest', imageId: 'preferred-img' })
-                ]),
-                undefined
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-forest',
+                expect.objectContaining({ name: 'Forest', imageId: 'preferred-img' })
             );
         });
 
@@ -607,10 +602,14 @@ describe('streamCards', () => {
 
             await streamCards(options);
 
-            const addCall = (undoableAddCards as any).mock.calls[0][0];
-            expect(addCall).toHaveLength(2);
-            expect(addCall[0]).toEqual(expect.objectContaining({ imageId: 'resolved-art-a', order: 10 }));
-            expect(addCall[1]).toEqual(expect.objectContaining({ imageId: 'resolved-art-b', order: 20 }));
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-forest-1',
+                expect.objectContaining({ imageId: 'resolved-art-a' })
+            );
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-forest-2',
+                expect.objectContaining({ imageId: 'resolved-art-b' })
+            );
         });
 
         it('should not regress: same-name cards without preferredImageId share default art', async () => {
@@ -647,10 +646,14 @@ describe('streamCards', () => {
 
             await streamCards(options);
 
-            const addCall = (undoableAddCards as any).mock.calls[0][0];
-            expect(addCall).toHaveLength(2);
-            expect(addCall[0]).toEqual(expect.objectContaining({ imageId: 'default-forest-img', order: 10 }));
-            expect(addCall[1]).toEqual(expect.objectContaining({ imageId: 'default-forest-img', order: 20 }));
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-1',
+                expect.objectContaining({ imageId: 'default-forest-img' })
+            );
+            expect(db.cards.update).toHaveBeenCalledWith(
+                'uuid-2',
+                expect.objectContaining({ imageId: 'default-forest-img' })
+            );
         });
     });
 });

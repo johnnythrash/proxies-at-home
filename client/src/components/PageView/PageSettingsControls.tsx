@@ -75,7 +75,10 @@ export function PageSettingsControls({
   // Ensure we always have a valid object with order array
   const settingsPanelState = rawSettingsPanelState && Array.isArray(rawSettingsPanelState.order)
     ? rawSettingsPanelState
-    : { order: ['projects', 'layout', 'bleed', 'card', 'guides', 'darken', 'filterSort', 'export', 'application'], collapsed: {} };
+    : {
+      order: ['projects', 'layout', 'bleed', 'card', 'guides', 'darken', 'filterSort', 'export', 'application'],
+      collapsed: { projects: true, guides: true, darken: true, filterSort: true, application: true },
+    };
   const setSettingsPanelState = useUserPreferencesStore(
     (state) => state.setSettingsPanelState
   );

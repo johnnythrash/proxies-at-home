@@ -22,8 +22,6 @@ export function useArtworkModalNavigation({
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (isSearching || isEditingName) return;
-            if (!e.ctrlKey && !e.metaKey) return;
-
             if (e.key === "ArrowLeft" && canGoPrev) {
                 e.preventDefault();
                 onPrev();

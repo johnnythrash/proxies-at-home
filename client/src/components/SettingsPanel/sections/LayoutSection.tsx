@@ -8,9 +8,20 @@ import { AutoTooltip } from "@/components/common";
 export function LayoutSection() {
     const columns = useSettingsStore((state) => state.columns);
     const rows = useSettingsStore((state) => state.rows);
+    const pageOrientation = useSettingsStore((state) => state.pageOrientation);
+    const pageWidth = useSettingsStore((state) => state.pageWidth);
+    const pageHeight = useSettingsStore((state) => state.pageHeight);
+    const registrationMarks = useSettingsStore((state) => state.registrationMarks);
     const setColumns = useSettingsStore((state) => state.setColumns);
     const setRows = useSettingsStore((state) => state.setRows);
     const applyScmPreset = useSettingsStore((state) => state.applyScmPreset);
+    const isSilhouetteActive =
+        pageOrientation === "landscape" &&
+        pageWidth === 11 &&
+        pageHeight === 8.5 &&
+        columns === 4 &&
+        rows === 2 &&
+        registrationMarks === "3";
 
     const columnsInput = useNormalizedInput(
         columns,
@@ -34,6 +45,11 @@ export function LayoutSection() {
                     onClick={applyScmPreset}
                 >
                     Silhouette Card Maker
+                    {isSilhouetteActive && (
+                        <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
+                            Active
+                        </span>
+                    )}
                 </Button>
                 <AutoTooltip content="Apply settings compatible with Alan Cha's Silhouette Card Maker (letter-standard-v6): Letter landscape, 4×2 grid, 0.625mm bleed, 3-mark Silhouette registration, no cut overlays." />
             </div>

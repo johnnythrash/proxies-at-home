@@ -68,7 +68,7 @@ export function ArtworkModalNavigationArrows({
                 <button
                     onClick={onPrev}
                     className="fixed left-2 top-1/2 -translate-y-1/2 z-100001 p-3 rounded-full bg-black/30 hover:bg-black/70 text-white/60 hover:text-white transition-all duration-200"
-                    title="Previous card (Ctrl+←)"
+                    title="Previous card (←)"
                 >
                     <ChevronLeft className="w-8 h-8" />
                 </button>
@@ -77,7 +77,7 @@ export function ArtworkModalNavigationArrows({
                 <button
                     onClick={onNext}
                     className="fixed right-2 top-1/2 -translate-y-1/2 z-100001 p-3 rounded-full bg-black/30 hover:bg-black/70 text-white/60 hover:text-white transition-all duration-200"
-                    title="Next card (Ctrl+→)"
+                    title="Next card (→)"
                 >
                     <ChevronRight className="w-8 h-8" />
                 </button>

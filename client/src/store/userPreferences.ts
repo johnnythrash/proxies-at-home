@@ -162,7 +162,15 @@ export const useUserPreferencesStore = create<UserPreferencesState>((set, get) =
             if (!prefs.settingsPanelState) {
                 prefs.settingsPanelState = {
                     order: defaultOrder,
-                    collapsed: {}
+                    // Keep the everyday print workflow visible; tuck specialist
+                    // controls away until they are needed.
+                    collapsed: {
+                        projects: true,
+                        guides: true,
+                        darken: true,
+                        filterSort: true,
+                        application: true,
+                    }
                 };
             } else {
                 if (!prefs.settingsPanelState.collapsed) {

@@ -182,8 +182,11 @@ vi.mock('./hooks/useArtworkDisplayMetadata', () => ({
 }));
 
 vi.mock('./hooks/useArtworkApplication', () => ({
-    useArtworkApplication: vi.fn(() => ({
-        handleSelectArtwork: mockHandleSelectArtwork,
+    useArtworkApplication: vi.fn((options: { setSelectedArtId: (url: string) => void }) => ({
+        handleSelectArtwork: (url: string) => {
+            options.setSelectedArtId(url);
+            mockHandleSelectArtwork(url);
+        },
         handleSelectMpcArt: mockHandleSelectMpcArt,
         handleSelectUploadLibraryArt: mockHandleSelectUploadLibraryArt,
     })),
@@ -498,6 +501,16 @@ describe('ArtworkModal', () => {
             render(<ArtworkModal />);
             fireEvent.click(screen.getByTestId('select-artwork'));
             expect(mockHandleSelectArtwork).toHaveBeenCalledWith('https://example.com/art.jpg');
+        });
+
+        it('updates the details preview when a different artwork is selected', () => {
+            render(<ArtworkModal />);
+
+            fireEvent.click(screen.getByTestId('select-artwork'));
+
+            expect(screen.getByAltText('Test Card').getAttribute('src')).toBe(
+                'https://example.com/art.jpg',
+            );
         });
 
         it('should wire onSelectMpcArt to useArtworkApplication.handleSelectMpcArt', () => {

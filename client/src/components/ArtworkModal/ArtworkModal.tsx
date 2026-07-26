@@ -138,6 +138,10 @@ export function ArtworkModal() {
     finalProcessedDisplayUrl: rFinalProcessedDisplayUrl,
     activeCard: rActiveCard,
   } = propsToRender;
+  const selectedPreviewUrl =
+    selectedArtState && selectedArtState.cardUuid === rActiveCard?.uuid
+      ? selectedArtState.artId
+      : rPreviewCardData?.imageUrls?.[0];
 
   if (isModalOpen && modalCard?.uuid && modalCard.uuid !== lastOpenCardUuid) {
     setLastOpenCardUuid(modalCard.uuid);
@@ -335,7 +339,7 @@ export function ArtworkModal() {
           {rModalCard && (
             <ArtworkDetailsPanel
               card={rSelectedFace === "back" && rLinkedBackCard ? rLinkedBackCard : rModalCard}
-              imageUrl={rFinalProcessedDisplayUrl}
+              imageUrl={selectedPreviewUrl || rFinalProcessedDisplayUrl}
               displayName={rDisplayName}
             />
           )}
