@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, type UserPreferences } from '../db';
+import { db, type FavoritePrinting, type UserPreferences } from '../db';
 import { useSettingsStore } from './settings';
 
 interface UserPreferencesState {
@@ -14,6 +14,7 @@ interface UserPreferencesState {
     setFavoriteMpcDpi: (dpi: number | null) => Promise<void>;
     setFavoriteMpcSort: (sort: 'name' | 'dpi' | 'source' | null) => Promise<void>;
     setFavoriteMpcGroupBySource: (enabled: boolean) => Promise<void>;
+    toggleFavoritePrinting: (cardName: string, printing: FavoritePrinting) => Promise<void>;
 
     // Generic TCG Actions (Phase 1: TCG Module Architecture)
     toggleFavoriteTcgSet: (tcg: string, set: string) => Promise<void>;
@@ -143,6 +144,7 @@ export const useUserPreferencesStore = create<UserPreferencesState>((set, get) =
             if (!prefs.favoriteMpcTags) prefs.favoriteMpcTags = [];
             if (!prefs.favoriteCardbackOrigins) prefs.favoriteCardbackOrigins = [];
             if (!prefs.favoriteCardbackSources) prefs.favoriteCardbackSources = [];
+            if (!prefs.favoritePrintings) prefs.favoritePrintings = {};
 
             // Migration: customXXX -> uploadLibraryXXX
             /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -389,6 +391,28 @@ export const useUserPreferencesStore = create<UserPreferencesState>((set, get) =
     setFavoritePokemonGroupBySet: async (enabled: boolean) => get().setFavoriteTcgGroupBySet('pokemon', enabled),
 
     setFavoriteMpcGroupBySource: async (enabled: boolean) => updatePreference('favoriteMpcGroupBySource', enabled, get, set),
+    toggleFavoritePrinting: async (cardName: string, printing: FavoritePrinting) => {
+        const prefs = get().preferences;
+        if (!prefs) return;
+        const key = cardName.trim().toLowerCase();
+        const current = prefs.favoritePrintings?.[key] ?? [];
+        const isSame = (item: FavoritePrinting) =>
+            (item.source ?? 'scryfall') === (printing.source ?? 'scryfall') &&
+            (item.set ?? '').toLowerCase() === (printing.set ?? '').toLowerCase() &&
+            (item.number ?? '') === (printing.number ?? '') &&
+            (item.faceName ?? '') === (printing.faceName ?? '') &&
+            (item.identifier ?? '') === (printing.identifier ?? '') &&
+            (item.localImageId ?? '') === (printing.localImageId ?? '');
+        const updated = current.some(isSame)
+            ? current.filter((item) => !isSame(item))
+            : [printing, ...current];
+        const favoritePrintings = { ...(prefs.favoritePrintings ?? {}) };
+        if (updated.length > 0) favoritePrintings[key] = updated;
+        else delete favoritePrintings[key];
+        const newPrefs = { ...prefs, favoritePrintings };
+        await db.userPreferences.put(newPrefs);
+        set({ preferences: newPrefs });
+    },
     setUploadLibrarySort: async (sort: 'name' | 'date' | 'type' | null) => updatePreference('uploadLibrarySort', sort, get, set),
     setUploadLibrarySortDirection: async (dir: 'asc' | 'desc') => updatePreference('uploadLibrarySortDirection', dir, get, set),
     setFavoriteUploadLibraryGroupByType: async (enabled: boolean) => updatePreference('favoriteUploadLibraryGroupByType', enabled, get, set),

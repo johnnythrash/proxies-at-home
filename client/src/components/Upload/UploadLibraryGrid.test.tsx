@@ -196,6 +196,23 @@ describe('UploadLibraryGrid', () => {
         });
     });
 
+    it('uses the per-card favorite action in the artwork modal', () => {
+        const onTogglePreferredFavorite = vi.fn();
+        render(
+            <UploadLibraryGrid
+                {...defaultProps}
+                mode="artwork-modal"
+                preferredFavoriteHashes={new Set(['h3'])}
+                onTogglePreferredFavorite={onTogglePreferredFavorite}
+            />
+        );
+
+        fireEvent.click(screen.getByTitle('Remove from favorites'));
+
+        expect(onTogglePreferredFavorite).toHaveBeenCalledWith(singleItem);
+        expect(uploadLibraryHelpers.updateUploadLibraryMetadata).not.toHaveBeenCalled();
+    });
+
     it('actions target correct face when flipped', async () => {
         render(<UploadLibraryGrid {...defaultProps} />);
 

@@ -254,6 +254,8 @@ export interface UploadLibraryGridProps {
     pendingRenameHash?: string | null;
     onPendingActionHandled?: () => void;
     selectedFace?: "front" | "back";
+    preferredFavoriteHashes?: Set<string>;
+    onTogglePreferredFavorite?: (item: UploadLibraryItem) => void;
 }
 
 export function UploadLibraryGrid({
@@ -273,6 +275,8 @@ export function UploadLibraryGrid({
     pendingRenameHash,
     onPendingActionHandled,
     selectedFace,
+    preferredFavoriteHashes,
+    onTogglePreferredFavorite,
 }: UploadLibraryGridProps) {
     const [sortBy, setSortBy] = useState<UploadLibrarySortKey>("date");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -397,8 +401,17 @@ export function UploadLibraryGrid({
             }
             return true;
         });
+        if (preferredFavoriteHashes?.size) {
+            result = [...result].sort((a, b) => {
+                const aFavorite = preferredFavoriteHashes.has(a.hash);
+                const bFavorite = preferredFavoriteHashes.has(b.hash);
+                if (aFavorite && !bFavorite) return -1;
+                if (!aFavorite && bFavorite) return 1;
+                return 0;
+            });
+        }
         return result;
-    }, [filtered, query, items, itemsMap, sortBy, sortDir]);
+    }, [filtered, query, items, itemsMap, sortBy, sortDir, preferredFavoriteHashes]);
 
     useEffect(() => {
         onDisplayItemsChange?.(displayItems);
@@ -753,11 +766,22 @@ export function UploadLibraryGrid({
                         )}
                     </div>
                     <TileActionButtons
-                        displayItem={displayItem}
+                        displayItem={
+                            onTogglePreferredFavorite
+                                ? { ...displayItem, isFavorite: preferredFavoriteHashes?.has(displayItem.hash) ?? false }
+                                : displayItem
+                        }
                         isLinked={isLinked}
                         backPartner={backPartner}
                         mode={mode}
-                        onFavorite={handleToggleFavorite}
+                        onFavorite={(hash) => {
+                            const item = itemsMap.get(hash);
+                            if (onTogglePreferredFavorite && item) {
+                                onTogglePreferredFavorite(item);
+                            } else {
+                                void handleToggleFavorite(hash);
+                            }
+                        }}
                         onIdentify={handleStartIdentify}
                         onRename={handleStartRename}
                         onDelete={handleDelete}

@@ -185,6 +185,24 @@ export function CardArtContent({
   const toggleFavoriteScryfallSet = useUserPreferencesStore(
     (s) => s.toggleFavoriteScryfallSet
   );
+  const favoritePrintings = useUserPreferencesStore(
+    (s) => s.preferences?.favoritePrintings?.[query.trim().toLowerCase()] || EMPTY_ARRAY
+  );
+  const toggleFavoritePrinting = useUserPreferencesStore(
+    (s) => s.toggleFavoritePrinting
+  );
+  const isFavoritePrinting = useCallback(
+    (print: PrintInfo) =>
+      favoritePrintings.some(
+        (favorite) =>
+          typeof favorite !== "string" &&
+          (favorite.source ?? "scryfall") === "scryfall" &&
+          favorite.set?.toLowerCase() === print.set.toLowerCase() &&
+          favorite.number === print.number &&
+          (favorite.faceName ?? "") === (print.faceName ?? "")
+      ),
+    [favoritePrintings]
+  );
 
   // Scryfall Search Mode State (cards = deduplicated, prints = all prints)
   const userScryfallSearchMode = useUserPreferencesStore(
@@ -566,6 +584,11 @@ export function CardArtContent({
         if (!aSelected && bSelected) return 1;
       }
 
+      const aFavorite = isFavoritePrinting(a);
+      const bFavorite = isFavoritePrinting(b);
+      if (aFavorite && !bFavorite) return -1;
+      if (!aFavorite && bFavorite) return 1;
+
       const printsSortBy = isPokemon ? pokemonSortBy : scryfallSortBy;
       const printsSortDir = isPokemon ? pokemonSortDir : scryfallSortDir;
 
@@ -605,25 +628,39 @@ export function CardArtContent({
     allScryfallSets,
     scryfallSortKey,
     stripQuery,
+    isFavoritePrinting,
   ]);
 
   // Derive available sets from ALL results (before filtering)
 
   // Local MPC sorting - re-sort based on mpcSortKey
+  const favoriteMpcIdentifiers = useMemo(
+    () =>
+      new Set(
+        favoritePrintings.flatMap((favorite) =>
+          typeof favorite !== "string" &&
+          favorite.source === "mpc" &&
+          favorite.identifier
+            ? [favorite.identifier]
+            : []
+        )
+      ),
+    [favoritePrintings]
+  );
   const sortedMpcCards = useMemo(() => {
     const cards = mpcData.filteredCards;
-    if (mpcSortKey && cards.length > 0) {
-      const idx = cards.findIndex((c) => c.identifier === mpcSortKey);
-      if (idx > 0) {
-        // Move the selected card to the front
-        const result = [...cards];
-        const [card] = result.splice(idx, 1);
-        result.unshift(card);
-        return result;
+    return [...cards].sort((a, b) => {
+      if (mpcSortKey) {
+        if (a.identifier === mpcSortKey && b.identifier !== mpcSortKey) return -1;
+        if (b.identifier === mpcSortKey && a.identifier !== mpcSortKey) return 1;
       }
-    }
-    return cards;
-  }, [mpcData.filteredCards, mpcSortKey]);
+      const aFavorite = favoriteMpcIdentifiers.has(a.identifier);
+      const bFavorite = favoriteMpcIdentifiers.has(b.identifier);
+      if (aFavorite && !bFavorite) return -1;
+      if (!aFavorite && bFavorite) return 1;
+      return 0;
+    });
+  }, [mpcData.filteredCards, mpcSortKey, favoriteMpcIdentifiers]);
 
   // Forward filter count changes (in useEffect to avoid setState during render)
   useEffect(() => {
@@ -788,6 +825,7 @@ export function CardArtContent({
   const renderPrint = (print: PrintInfo, index: number) => {
     const isSelected =
       stripQuery(highlightSelectedArtId) === stripQuery(print.imageUrl);
+    const isFavorite = isFavoritePrinting(print);
 
     const displayUrl =
       isSelected && processedDisplayUrl ? processedDisplayUrl : print.imageUrl;
@@ -811,6 +849,25 @@ export function CardArtContent({
         {isSelected && (
           <div className="absolute inset-0 rounded-[2.5mm] ring-4 ring-green-500 pointer-events-none" />
         )}
+        <button
+          type="button"
+          className="absolute left-2 top-2 z-30 rounded-full bg-black/65 p-1.5 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
+          title={isFavorite ? "Remove favorite printing" : "Favorite this printing"}
+          aria-label={isFavorite ? "Remove favorite printing" : "Favorite this printing"}
+          onClick={(event) => {
+            event.stopPropagation();
+            void toggleFavoritePrinting(query, {
+              imageUrl: print.imageUrl,
+              set: print.set,
+              number: print.number,
+              faceName: print.faceName,
+            });
+          }}
+        >
+          <Star
+            className={`size-4 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-white"}`}
+          />
+        </button>
       </div>
     );
   };
@@ -818,6 +875,12 @@ export function CardArtContent({
   // Render a single MPC card with bleed cropping and filter badges
   const renderMpcCard = (card: MpcAutofillCard, index: number) => {
     const isSelected = highlightSelectedMpcId === card.identifier;
+    const isFavorite = favoritePrintings.some(
+      (favorite) =>
+        typeof favorite !== "string" &&
+        favorite.source === "mpc" &&
+        favorite.identifier === card.identifier
+    );
     // Use proxied URLs for consistent loading and caching
     const primaryUrl = getMpcAutofillImageUrl(card.identifier, "small");
     const fallbackUrl = card.smallThumbnailUrl || "";
@@ -851,6 +914,22 @@ export function CardArtContent({
         {isSelected && (
           <div className="absolute inset-0 rounded-[2.5mm] ring-4 ring-green-500 pointer-events-none" />
         )}
+        <button
+          type="button"
+          className="absolute left-2 top-2 z-40 rounded-full bg-black/65 p-1.5 text-white shadow-sm transition hover:scale-110 hover:bg-black/85"
+          title={isFavorite ? "Remove favorite MPC artwork" : "Favorite this MPC artwork"}
+          aria-label={isFavorite ? "Remove favorite MPC artwork" : "Favorite this MPC artwork"}
+          onClick={(event) => {
+            event.stopPropagation();
+            void toggleFavoritePrinting(query, {
+              source: "mpc",
+              identifier: card.identifier,
+              imageUrl: getMpcAutofillImageUrl(card.identifier),
+            });
+          }}
+        >
+          <Star className={`size-4 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />
+        </button>
         {/* DPI Badge - always visible */}
         <div
           className={`absolute top-2 right-2 text-white text-xs px-2 py-1 rounded transition-all z-30 cursor-pointer hover:scale-105 active:scale-95 ${mpcData.filters.minDpi > 0 && card.dpi >= mpcData.filters.minDpi
@@ -1105,6 +1184,21 @@ export function CardArtContent({
                     selectedHash={highlightSelectedArtId ?? undefined}
                     onSelectItem={handleUploadLibraryItemSelect}
                     selectedFace={selectedFace}
+                    preferredFavoriteHashes={new Set(
+                      favoritePrintings.flatMap((favorite) =>
+                        typeof favorite !== "string" &&
+                        favorite.source === "upload-library" &&
+                        favorite.localImageId
+                          ? [favorite.localImageId]
+                          : []
+                      )
+                    )}
+                    onTogglePreferredFavorite={(item) => {
+                      void toggleFavoritePrinting(query, {
+                        source: "upload-library",
+                        localImageId: item.hash,
+                      });
+                    }}
                   />
                 ) : artSource === "scryfall" ? (
                   (isPokemon ? pokemonGroupBySet : scryfallGroupBySet) ? (
@@ -1143,6 +1237,15 @@ export function CardArtContent({
                             // Favorites check
                             const isFavA = activeFavSets.includes(codeA);
                             const isFavB = activeFavSets.includes(codeB);
+                            const hasFavoritePrintA =
+                              mode === "prints" &&
+                              a[1].some((item) => isFavoritePrinting(item as PrintInfo));
+                            const hasFavoritePrintB =
+                              mode === "prints" &&
+                              b[1].some((item) => isFavoritePrinting(item as PrintInfo));
+
+                            if (hasFavoritePrintA && !hasFavoritePrintB) return -1;
+                            if (!hasFavoritePrintA && hasFavoritePrintB) return 1;
 
                             if (isFavA && !isFavB) return -1;
                             if (!isFavA && isFavB) return 1;
@@ -1298,6 +1401,14 @@ export function CardArtContent({
                         ).sort((a, b) => {
                           const sourceA = a[0];
                           const sourceB = b[0];
+                          const aHasFavoriteArt = a[1].some((card) =>
+                            favoriteMpcIdentifiers.has(card.identifier)
+                          );
+                          const bHasFavoriteArt = b[1].some((card) =>
+                            favoriteMpcIdentifiers.has(card.identifier)
+                          );
+                          if (aHasFavoriteArt && !bHasFavoriteArt) return -1;
+                          if (!aHasFavoriteArt && bHasFavoriteArt) return 1;
                           const aIsFav =
                             stableFavoriteSourcesRef.current.includes(sourceA);
                           const bIsFav =
@@ -1357,7 +1468,15 @@ export function CardArtContent({
                             {!isSourceCollapsed(sourceName) && (
                               <div className="p-4">
                                 <CardGrid cardSize={cardSize}>
-                                  {cards.map(renderMpcCard)}
+                                  {[...cards]
+                                    .sort((a, b) => {
+                                      const aFavorite = favoriteMpcIdentifiers.has(a.identifier);
+                                      const bFavorite = favoriteMpcIdentifiers.has(b.identifier);
+                                      if (aFavorite && !bFavorite) return -1;
+                                      if (!aFavorite && bFavorite) return 1;
+                                      return 0;
+                                    })
+                                    .map(renderMpcCard)}
                                 </CardGrid>
                               </div>
                             )}

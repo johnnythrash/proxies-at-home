@@ -5,6 +5,8 @@ import { useToastStore } from "@/store/toast";
 import { handleAutoImportTokens } from "@/helpers/tokenImportHelper";
 import { db } from "@/db";
 import { useProjectStore } from "@/store/projectStore";
+import { useUserPreferencesStore } from "@/store/userPreferences";
+import { applyFavoritePrintingsToIntents } from "@/helpers/favoritePrintings";
 
 export type ImportPhase = "idle" | "looking-up" | "downloading" | "complete" | "error";
 
@@ -73,13 +75,17 @@ export function useCardImport(options: UseCardImportOptions = {}): UseCardImport
             return;
         }
 
-        lastIntentsRef.current = intents;
+        const favoritePrintings =
+            useUserPreferencesStore.getState().preferences?.favoritePrintings ?? {};
+        const importIntents = applyFavoritePrintingsToIntents(intents, favoritePrintings);
+
+        lastIntentsRef.current = importIntents;
         setPhase("looking-up");
         setProgress(0);
         setSummary(null);
 
         try {
-            await ImportOrchestrator.process(intents, {
+            await ImportOrchestrator.process(importIntents, {
                 signal: fetchController.current.signal,
                 onProgress: (processed, total) => {
                     setPhase(processed === 0 ? "looking-up" : "downloading");

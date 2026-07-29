@@ -169,5 +169,24 @@ describe("useUserPreferencesStore", () => {
             expect(prefs?.favoriteMpcSources).not.toContain("source1");
             expect(db.userPreferences.put).toHaveBeenCalledTimes(2);
         });
+
+        it("adds, prioritizes, and removes favorite printings per card", async () => {
+            const printing = {
+                imageUrl: "https://cards.example/lea-270.jpg",
+                set: "lea",
+                number: "270",
+            };
+
+            await useUserPreferencesStore.getState().toggleFavoritePrinting("Sol Ring", printing);
+            expect(
+                useUserPreferencesStore.getState().preferences?.favoritePrintings?.["sol ring"]
+            ).toEqual([printing]);
+
+            await useUserPreferencesStore.getState().toggleFavoritePrinting("SOL RING", printing);
+            expect(
+                useUserPreferencesStore.getState().preferences?.favoritePrintings?.["sol ring"]
+            ).toBeUndefined();
+            expect(db.userPreferences.put).toHaveBeenCalledTimes(2);
+        });
     });
 });

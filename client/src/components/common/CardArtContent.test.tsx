@@ -9,11 +9,18 @@ import { useUserPreferencesStore } from '@/store';
 // Mock dependencies
 vi.mock('@/helpers/uploadLibrary');
 vi.mock('@/store');
+vi.mock('./CardImageSvg', () => ({
+    CardImageSvg: ({ url }: { url: string }) => <img src={url} alt="" />,
+}));
 vi.mock('@/hooks/useScryfallSearch', () => ({
     useScryfallSearch: () => ({ cards: [], hasResults: false })
 }));
 vi.mock('@/hooks/useScryfallPrints', () => ({
-    useScryfallPrints: () => ({ prints: [] })
+    useScryfallPrints: ({ initialPrints }: { initialPrints?: unknown[] }) => ({
+        prints: initialPrints ?? [],
+        isLoading: false,
+        hasSearched: true,
+    })
 }));
 vi.mock('@/hooks/useMpcSearch', () => ({
     useMpcSearch: () => ({ cards: [], filteredCards: [], filters: { sourceFilters: new Set(), tagFilters: new Set() } })
@@ -107,5 +114,45 @@ describe('CardArtContent Upload Library Logic', () => {
             canonicalCardNumber: '270',
             typeLine: 'Artifact'
         });
+    });
+});
+
+describe('CardArtContent favorite printings', () => {
+    it('sorts a favorite printing first and allows removing it without selecting the card', () => {
+        const toggleFavoritePrinting = vi.fn();
+        const onSelectCard = vi.fn();
+        const favorite = {
+            imageUrl: 'https://cards.example/favorite.jpg',
+            set: 'fav',
+            number: '2',
+        };
+        (useUserPreferencesStore as any).mockImplementation((selector: any) => selector({
+            preferences: {
+                favoritePrintings: { 'sol ring': [favorite] },
+                favoriteScryfallSets: [],
+            },
+            toggleFavoritePrinting,
+            toggleFavoriteScryfallSet: vi.fn(),
+        }));
+
+        render(
+            <CardArtContent
+                artSource="scryfall"
+                mode="prints"
+                query="Sol Ring"
+                initialPrints={[
+                    { imageUrl: 'https://cards.example/other.jpg', set: 'oth', number: '1' },
+                    favorite,
+                ]}
+                onSelectCard={onSelectCard}
+            />
+        );
+
+        const cards = screen.getAllByTestId('artwork-card');
+        expect(cards[0].querySelector('[title="Remove favorite printing"]')).toBeTruthy();
+
+        fireEvent.click(screen.getByTitle('Remove favorite printing'));
+        expect(toggleFavoritePrinting).toHaveBeenCalledWith('Sol Ring', favorite);
+        expect(onSelectCard).not.toHaveBeenCalled();
     });
 });

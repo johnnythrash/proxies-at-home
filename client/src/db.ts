@@ -150,10 +150,22 @@ export interface TcgScopedPreferences {
   favoriteSearchMode?: 'cards' | 'prints' | null;
 }
 
+export interface FavoritePrinting {
+  source?: 'scryfall' | 'mpc' | 'upload-library';
+  imageUrl?: string;
+  set?: string;
+  number?: string;
+  faceName?: string;
+  identifier?: string;
+  localImageId?: string;
+}
+
 export interface UserPreferences {
   id: 'default';           // Singleton record
   settings: Json;          // User's default settings
   favoriteCardbacks: string[];  // Default cardback selections
+  /** Favorite printings keyed by normalized card/face name. Most recent is first. */
+  favoritePrintings?: Record<string, FavoritePrinting[]>;
   lastProjectId?: string;  // Resume last project on app open
   // TCG-scoped preferences (Phase 1: TCG Module Architecture)
   tcgPreferences?: Record<string, TcgScopedPreferences>;
