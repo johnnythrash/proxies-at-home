@@ -26,6 +26,9 @@ const mockSettingsState = vi.hoisted(() => ({
     perCardGuideStyle: "corners" as const,
     guidePlacement: "inside" as const,
     cutGuideLengthMm: 5,
+    registrationMarks: "3" as const,
+    registrationMarksPortrait: false,
+    registrationMarkLengthMm: 19.9898,
 }));
 
 vi.mock("../store/settings", () => ({
@@ -100,6 +103,7 @@ describe("serializeSettingsForWorker", () => {
             expect(result.perCardGuideStyle).toBe("corners");
             expect(result.guidePlacement).toBe("inside");
             expect(result.cutGuideLengthMm).toBe(5);
+            expect(result.registrationMarkLengthMm).toBe(19.9898);
         });
 
         it("should include darken and DPI settings", () => {

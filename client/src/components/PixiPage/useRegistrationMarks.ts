@@ -15,7 +15,6 @@ import { CONSTANTS } from "@/constants/commonConstants";
 // Silhouette registration mark constants (must match pdf.worker.ts)
 const REG_MARK_OFFSET_MM = 10.0076; // 0.394" from page edge (Silhouette spec)
 const REG_MARK_SQUARE_SIZE_MM = 5; // Size of the top-left square (3-point)
-const REG_MARK_ARM_LENGTH_MM = 8.382; // 0.33" length of L-shape arms (Silhouette spec)
 const REG_MARK_LINE_WIDTH_MM = 0.9906; // 0.039" thickness of L-shape lines
 
 interface UseRegistrationMarksProps {
@@ -25,6 +24,7 @@ interface UseRegistrationMarksProps {
   pages: PageLayoutInfo[];
   registrationMarks: "none" | "3" | "4" | "cricut";
   registrationMarksPortrait: boolean;
+  registrationMarkLengthMm: number;
 }
 
 /**
@@ -61,6 +61,7 @@ export function useRegistrationMarks({
   pages,
   registrationMarks,
   registrationMarksPortrait,
+  registrationMarkLengthMm,
 }: UseRegistrationMarksProps): void {
   const graphicsRef = useRef<Graphics | null>(null);
 
@@ -144,7 +145,7 @@ export function useRegistrationMarks({
     // ── SILHOUETTE MODE ──────────────────────────────────────────────
     const offsetPx = REG_MARK_OFFSET_MM * CONSTANTS.DISPLAY_MM_TO_PX;
     const squareSizePx = REG_MARK_SQUARE_SIZE_MM * CONSTANTS.DISPLAY_MM_TO_PX;
-    const armLengthPx = REG_MARK_ARM_LENGTH_MM * CONSTANTS.DISPLAY_MM_TO_PX;
+    const armLengthPx = registrationMarkLengthMm * CONSTANTS.DISPLAY_MM_TO_PX;
     const lineWidthPx = REG_MARK_LINE_WIDTH_MM * CONSTANTS.DISPLAY_MM_TO_PX;
 
     pages.forEach((page) => {
@@ -198,6 +199,7 @@ export function useRegistrationMarks({
     pages,
     registrationMarks,
     registrationMarksPortrait,
+    registrationMarkLengthMm,
   ]);
 
   // Cleanup on unmount

@@ -159,6 +159,7 @@ export function ProjectSelector() {
         decklistSortAlpha: state.decklistSortAlpha,
         registrationMarks: state.registrationMarks,
         registrationMarksPortrait: state.registrationMarksPortrait,
+        registrationMarkLengthMm: state.registrationMarkLengthMm,
         defaultCardbackId: state.defaultCardbackId,
     })));
 

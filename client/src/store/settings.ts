@@ -146,6 +146,8 @@ export type Store = {
   setRegistrationMarks: (value: "none" | "3" | "4" | "cricut ") => void;
   registrationMarksPortrait: boolean;
   setRegistrationMarksPortrait: (value: boolean) => void;
+  registrationMarkLengthMm: number;
+  setRegistrationMarkLengthMm: (value: number) => void;
   globalLanguage: string;
   setGlobalLanguage: (lang: string) => void;
 
@@ -213,6 +215,7 @@ export type Store = {
   setActiveTcg: (value: TcgId) => void;
   setAllSettings: (settings: Partial<Store>) => void;
   applyScmPreset: () => void;
+  applyScmTabloidPreset: () => void;
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
 };
@@ -278,6 +281,7 @@ const defaultPageSettings = {
   cutGuideLengthMm: 6.25,
   registrationMarks: "3" as "none" | "3" | "4" | "cricut",
   registrationMarksPortrait: false,
+  registrationMarkLengthMm: 8.382,
   globalLanguage: "en",
 
   sortBy: "manual" as "name" | "type" | "cmc" | "color" | "manual" | "rarity",
@@ -618,6 +622,11 @@ export const useSettingsStore = create<Store>()((set) => ({
       );
       return { registrationMarksPortrait: value };
     }),
+  setRegistrationMarkLengthMm: (value) =>
+    set((state) => {
+      recordSettingChange("registrationMarkLengthMm", state.registrationMarkLengthMm);
+      return { registrationMarkLengthMm: value };
+    }),
   setGlobalLanguage: (lang) =>
     set((state) => {
       recordSettingChange("globalLanguage", state.globalLanguage);
@@ -717,6 +726,7 @@ export const useSettingsStore = create<Store>()((set) => ({
       cardPositionY: currentState.cardPositionY,
       registrationMarks: currentState.registrationMarks,
       registrationMarksPortrait: currentState.registrationMarksPortrait,
+      registrationMarkLengthMm: currentState.registrationMarkLengthMm,
       cutLineStyle: currentState.cutLineStyle,
       perCardGuideStyle: currentState.perCardGuideStyle,
     };
@@ -740,6 +750,7 @@ export const useSettingsStore = create<Store>()((set) => ({
       cardPositionY: 0,
       registrationMarks: "3" as "none" | "3" | "4" | "cricut",
       registrationMarksPortrait: false,
+      registrationMarkLengthMm: 8.382,
       cutLineStyle: "none" as "none" | "edges" | "full",
       perCardGuideStyle: "none" as const,
     };
@@ -758,6 +769,60 @@ export const useSettingsStore = create<Store>()((set) => ({
     });
   },
 
+  applyScmTabloidPreset: () => {
+    const currentState = useSettingsStore.getState();
+    const oldSettings = {
+      pageSizePreset: currentState.pageSizePreset,
+      pageOrientation: currentState.pageOrientation,
+      pageWidth: currentState.pageWidth,
+      pageHeight: currentState.pageHeight,
+      pageSizeUnit: currentState.pageSizeUnit,
+      columns: currentState.columns,
+      rows: currentState.rows,
+      bleedEdge: currentState.bleedEdge,
+      bleedEdgeWidth: currentState.bleedEdgeWidth,
+      bleedEdgeUnit: currentState.bleedEdgeUnit,
+      cardSpacingMm: currentState.cardSpacingMm,
+      cardPositionX: currentState.cardPositionX,
+      cardPositionY: currentState.cardPositionY,
+      registrationMarks: currentState.registrationMarks,
+      registrationMarksPortrait: currentState.registrationMarksPortrait,
+      registrationMarkLengthMm: currentState.registrationMarkLengthMm,
+      cutLineStyle: currentState.cutLineStyle,
+      perCardGuideStyle: currentState.perCardGuideStyle,
+    };
+
+    // Alan Cha SCM Extras tabloid-standard_mtg-v1 compatible settings.
+    // Paper: Tabloid portrait, 4x4 grid, 0.625mm bleed, 20mm registration arms.
+    const scmTabloidSettings = {
+      pageSizePreset: "Tabloid" as LayoutPreset,
+      pageOrientation: "portrait" as PageOrientation,
+      pageWidth: 11,
+      pageHeight: 17,
+      pageSizeUnit: "in" as "in" | "mm",
+      columns: 4,
+      rows: 4,
+      bleedEdge: true,
+      bleedEdgeWidth: 0.625,
+      bleedEdgeUnit: "mm" as "mm" | "in",
+      cardSpacingMm: 0,
+      cardPositionX: 0,
+      cardPositionY: 0,
+      registrationMarks: "3" as "none" | "3" | "4" | "cricut",
+      registrationMarksPortrait: false,
+      registrationMarkLengthMm: 19.9898,
+      cutLineStyle: "none" as "none" | "edges" | "full",
+      perCardGuideStyle: "none" as const,
+    };
+
+    set(scmTabloidSettings);
+    useUndoRedoStore.getState().pushAction({
+      type: "CHANGE_SETTING",
+      description: "Apply SCM Tabloid MTG preset",
+      undo: async () => useSettingsStore.setState(oldSettings),
+      redo: async () => useSettingsStore.setState(scmTabloidSettings),
+    });
+  },
   resetSettings: () => {
     // Capture current state for undo
     const currentState = useSettingsStore.getState();
@@ -791,6 +856,7 @@ export const useSettingsStore = create<Store>()((set) => ({
       cutGuideLengthMm: currentState.cutGuideLengthMm,
       registrationMarks: currentState.registrationMarks,
       registrationMarksPortrait: currentState.registrationMarksPortrait,
+      registrationMarkLengthMm: currentState.registrationMarkLengthMm,
       globalLanguage: currentState.globalLanguage,
       sortBy: currentState.sortBy,
       sortOrder: currentState.sortOrder,

@@ -177,6 +177,9 @@ describe('shareHelper', () => {
                 perCardGuideStyle: 'corners',
                 guideColor: '#39FF14',
                 dpi: 600,
+                registrationMarks: '3',
+                registrationMarksPortrait: false,
+                registrationMarkLengthMm: 19.9898,
             };
 
             const result = serializeSettings(settings);
@@ -190,6 +193,9 @@ describe('shareHelper', () => {
             expect(result.gs).toBe('corners');
             expect(result.gc).toBe('#39FF14');
             expect(result.dpi).toBe(600);
+            expect(result.rm).toBe('3');
+            expect(result.rmp).toBe(false);
+            expect(result.rml).toBe(19.9898);
         });
 
         it('should serialize user preference settings', () => {

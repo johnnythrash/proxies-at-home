@@ -329,6 +329,22 @@ describe("useSettingsStore", () => {
         });
     });
 
+    describe("Silhouette presets", () => {
+        it("applies the Tabloid MTG 4x4 geometry", () => {
+            useSettingsStore.getState().applyScmTabloidPreset();
+            const state = useSettingsStore.getState();
+
+            expect(state.pageSizePreset).toBe("Tabloid");
+            expect(state.pageOrientation).toBe("portrait");
+            expect([state.pageWidth, state.pageHeight]).toEqual([11, 17]);
+            expect([state.columns, state.rows]).toEqual([4, 4]);
+            expect(state.bleedEdgeWidth).toBe(0.625);
+            expect(state.bleedEdgeUnit).toBe("mm");
+            expect(state.registrationMarks).toBe("3");
+            expect(state.registrationMarkLengthMm).toBeCloseTo(19.9898);
+            expect(state.perCardGuideStyle).toBe("none");
+        });
+    });
     describe("bleed settings", () => {
         it("setWithBleedSourceAmount should update setting", () => {
             const { setWithBleedSourceAmount } = useSettingsStore.getState();

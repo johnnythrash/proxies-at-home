@@ -33,11 +33,11 @@ type PersistableSettings = Omit<SettingsStore,
     | 'setCardPositionX' | 'setCardPositionY' | 'setUseCustomBackOffset' | 'setCardBackPositionX' | 'setCardBackPositionY'
     | 'setPerCardBackOffset' | 'bulkSetPerCardBackOffsets' | 'clearPerCardBackOffsets'
     | 'setDpi' | 'setCutLineStyle' | 'setPerCardGuideStyle' | 'setGuidePlacement' | 'setCutGuideLengthMm' | 'setGlobalLanguage'
-    | 'setRegistrationMarks' | 'setRegistrationMarksPortrait'
+    | 'setRegistrationMarks' | 'setRegistrationMarksPortrait' | 'setRegistrationMarkLengthMm'
     | 'setSortBy' | 'setSortOrder' | 'setFilterManaCost' | 'setFilterColors' | 'setFilterTypes' | 'setFilterCategories' | 'setFilterFeatures'
     | 'setFilterMatchType' | 'setDecklistSortAlpha' | 'setShowProcessingToasts' | 'setDefaultCardbackId' | 'setExportMode'
     | 'setAutoImportTokens' | 'setMpcFuzzySearch' | 'setPreferredArtSource' | 'setActiveTcg'
-    | 'applyScmPreset'
+    | 'applyScmPreset' | 'applyScmTabloidPreset'
     | 'hasHydrated'
 >;
 

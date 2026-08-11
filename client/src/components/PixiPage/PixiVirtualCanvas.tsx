@@ -107,6 +107,7 @@ interface PixiVirtualCanvasProps {
   // Registration marks
   registrationMarks: "none" | "3" | "4" | "cricut";
   registrationMarksPortrait: boolean;
+  registrationMarkLengthMm: number;
   // Theme
   isDarkMode: boolean;
   // Callback when card textures are loaded (for placeholder hiding)
@@ -143,6 +144,7 @@ function PixiVirtualCanvasInner({
   cutGuideLengthMm,
   registrationMarks,
   registrationMarksPortrait,
+  registrationMarkLengthMm,
   isDarkMode,
   onRenderedCardsChange,
   className,
@@ -655,6 +657,7 @@ function PixiVirtualCanvasInner({
     pages,
     registrationMarks,
     registrationMarksPortrait,
+    registrationMarkLengthMm,
   });
 
   // Update card sprites
@@ -1069,6 +1072,7 @@ const SHALLOW_COMPARE_KEYS: (keyof PixiVirtualCanvasProps)[] = [
   "pages",
   "registrationMarks",
   "registrationMarksPortrait",
+  "registrationMarkLengthMm",
 ];
 
 // Card properties that need simple equality check

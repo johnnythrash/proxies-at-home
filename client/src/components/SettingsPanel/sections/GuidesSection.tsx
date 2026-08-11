@@ -41,6 +41,9 @@ export function GuidesSection() {
   const setRegistrationMarksPortrait = useSettingsStore(
     (state) => state.setRegistrationMarksPortrait
   );
+  const registrationMarkLengthMm = useSettingsStore(
+    (state) => state.registrationMarkLengthMm
+  );
 
   const bleedEdge = useSettingsStore((state) => state.bleedEdge);
   const bleedEdgeWidth = useSettingsStore((state) => state.bleedEdgeWidth);
@@ -1168,11 +1171,11 @@ export function GuidesSection() {
                   </p>
                   <ul className="space-y-1 text-xs leading-relaxed">
                     <li>
-                      • Recommended bleed width: <strong>0.5mm</strong>
+                      • Recommended bleed width: <strong>0.625mm</strong>
                     </li>
                     <li>
-                      • Registration mark length: <strong>0.350 in.</strong>{" "}
-                      (default)
+                      • Registration mark length:{" "}
+                      <strong>{(registrationMarkLengthMm / CONSTANTS.MM_PER_IN).toFixed(3)} in.</strong>
                     </li>
                     <li>
                       • Registration mark thickness: <strong>0.039 in.</strong>{" "}

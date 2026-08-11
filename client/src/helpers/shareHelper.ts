@@ -62,6 +62,7 @@ export interface ShareSettings {
     cls?: string;  // cutLineStyle
     rm?: string;   // registrationMarks
     rmp?: boolean; // registrationMarksPortrait
+    rml?: number;  // registrationMarkLengthMm
     dci?: string;  // defaultCardbackId
 
     // Spacing/Position
@@ -121,6 +122,7 @@ export interface SettingsInput {
     cutLineStyle?: string;
     registrationMarks?: string;
     registrationMarksPortrait?: boolean;
+    registrationMarkLengthMm?: number;
     defaultCardbackId?: string;
     cardSpacingMm?: number;
     cardPositionX?: number;
@@ -387,6 +389,9 @@ export function serializeSettings(settings: SettingsInput): ShareSettings {
     if (settings.guidePlacement) result.gp = settings.guidePlacement;
     if (settings.cutGuideLengthMm !== undefined) result.cgL = settings.cutGuideLengthMm;
     if (settings.cutLineStyle) result.cls = settings.cutLineStyle;
+    if (settings.registrationMarks) result.rm = settings.registrationMarks;
+    if (settings.registrationMarksPortrait !== undefined) result.rmp = settings.registrationMarksPortrait;
+    if (settings.registrationMarkLengthMm !== undefined) result.rml = settings.registrationMarkLengthMm;
 
     // Spacing/Position
     if (settings.cardSpacingMm !== undefined) result.spc = settings.cardSpacingMm;

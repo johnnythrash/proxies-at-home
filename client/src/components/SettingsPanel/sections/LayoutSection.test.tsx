@@ -6,12 +6,18 @@ import React from 'react';
 const mockState = vi.hoisted(() => ({
     columns: 3,
     rows: 3,
+    pageOrientation: "landscape",
+    pageWidth: 11,
+    pageHeight: 8.5,
+    registrationMarks: "3",
+    registrationMarkLengthMm: 8.382,
 }));
 
 const mockSetters = vi.hoisted(() => ({
     setColumns: vi.fn(),
     setRows: vi.fn(),
     applyScmPreset: vi.fn(),
+    applyScmTabloidPreset: vi.fn(),
 }));
 
 vi.mock('@/store/settings', () => ({
@@ -19,9 +25,15 @@ vi.mock('@/store/settings', () => ({
         const state = {
             columns: mockState.columns,
             rows: mockState.rows,
+            pageOrientation: mockState.pageOrientation,
+            pageWidth: mockState.pageWidth,
+            pageHeight: mockState.pageHeight,
+            registrationMarks: mockState.registrationMarks,
+            registrationMarkLengthMm: mockState.registrationMarkLengthMm,
             setColumns: mockSetters.setColumns,
             setRows: mockSetters.setRows,
             applyScmPreset: mockSetters.applyScmPreset,
+            applyScmTabloidPreset: mockSetters.applyScmTabloidPreset,
         };
         return selector(state);
     }),
@@ -118,6 +130,11 @@ describe('LayoutSection', () => {
             render(<LayoutSection />);
             expect(screen.getByText('Rows')).toBeDefined();
             expect(screen.getByTestId('rows-input')).toBeDefined();
+        });
+        it('should apply the tabloid MTG preset', () => {
+            render(<LayoutSection />);
+            fireEvent.click(screen.getByText('Tabloid MTG 4×4'));
+            expect(mockSetters.applyScmTabloidPreset).toHaveBeenCalledOnce();
         });
     });
 

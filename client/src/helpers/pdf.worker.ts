@@ -410,11 +410,12 @@ function drawSilhouetteRegistrationMarks(
   pageHeightPx: number,
   dpi: number,
   markCount: "3" | "4",
-  portrait: boolean = false
+  portrait: boolean = false,
+  armLengthMm: number = REG_MARK_ARM_LENGTH_MM
 ): void {
   const offsetPx = MM_TO_PX(REG_MARK_OFFSET_MM, dpi);
   const squareSizePx = MM_TO_PX(REG_MARK_SQUARE_SIZE_MM, dpi);
-  const armLengthPx = MM_TO_PX(REG_MARK_ARM_LENGTH_MM, dpi);
+  const armLengthPx = MM_TO_PX(armLengthMm, dpi);
   const lineWidthPx = MM_TO_PX(REG_MARK_LINE_WIDTH_MM, dpi);
 
   // Create the stamp ONCE
@@ -655,6 +656,7 @@ self.onmessage = async (event: MessageEvent) => {
       // Silhouette registration marks
       registrationMarks,
       registrationMarksPortrait,
+      registrationMarkLengthMm,
       // Darken settings (Global)
       darkenThreshold,
       darkenContrast,
@@ -1503,7 +1505,8 @@ self.onmessage = async (event: MessageEvent) => {
           pageHeightPx,
           DPI,
           registrationMarks,
-          registrationMarksPortrait
+          registrationMarksPortrait,
+          registrationMarkLengthMm
         );
       }
     }

@@ -15,13 +15,15 @@ export function LayoutSection() {
     const setColumns = useSettingsStore((state) => state.setColumns);
     const setRows = useSettingsStore((state) => state.setRows);
     const applyScmPreset = useSettingsStore((state) => state.applyScmPreset);
-    const isSilhouetteActive =
-        pageOrientation === "landscape" &&
-        pageWidth === 11 &&
-        pageHeight === 8.5 &&
-        columns === 4 &&
-        rows === 2 &&
-        registrationMarks === "3";
+    const applyScmTabloidPreset = useSettingsStore((state) => state.applyScmTabloidPreset);
+    const registrationMarkLengthMm = useSettingsStore((state) => state.registrationMarkLengthMm);
+    const isSilhouetteLetterActive =
+        pageOrientation === "landscape" && pageWidth === 11 && pageHeight === 8.5 &&
+        columns === 4 && rows === 2 && registrationMarks === "3";
+    const isSilhouetteTabloidActive =
+        pageOrientation === "portrait" && pageWidth === 11 && pageHeight === 17 &&
+        columns === 4 && rows === 4 && registrationMarks === "3" &&
+        Math.abs(registrationMarkLengthMm - 19.9898) < 0.001;
 
     const columnsInput = useNormalizedInput(
         columns,
@@ -37,21 +39,19 @@ export function LayoutSection() {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-2">
-                <Button
-                    color="gray"
-                    size="sm"
-                    className="flex-1"
-                    onClick={applyScmPreset}
-                >
-                    Silhouette Card Maker
-                    {isSilhouetteActive && (
-                        <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
-                            Active
-                        </span>
-                    )}
-                </Button>
-                <AutoTooltip content="Apply settings compatible with Alan Cha's Silhouette Card Maker (letter-standard-v6): Letter landscape, 4×2 grid, 0.625mm bleed, 3-mark Silhouette registration, no cut overlays." />
+            <div className="space-y-2">
+                <Label>Silhouette Card Maker preset</Label>
+                <div className="grid grid-cols-2 gap-2">
+                    <Button color="gray" size="sm" onClick={applyScmPreset}>
+                        Letter 4×2
+                        {isSilhouetteLetterActive && <span className="ml-2 text-xs text-green-700 dark:text-green-300">Active</span>}
+                    </Button>
+                    <Button color="gray" size="sm" onClick={applyScmTabloidPreset}>
+                        Tabloid MTG 4×4
+                        {isSilhouetteTabloidActive && <span className="ml-2 text-xs text-green-700 dark:text-green-300">Active</span>}
+                    </Button>
+                </div>
+                <AutoTooltip content="Alan Cha SCM presets. Tabloid MTG uses 11×17 portrait, a 4×4 grid, 0.625mm bleed, 2.5mm card corners, and 20mm registration arms." />
             </div>
 
             <PageSizeControl />

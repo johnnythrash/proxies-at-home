@@ -76,6 +76,7 @@ function applyShareSettings(settings: ShareSettings): void {
     if (settings.cls) store.setCutLineStyle(settings.cls as Parameters<typeof store.setCutLineStyle>[0]);
     if (settings.rm) store.setRegistrationMarks(settings.rm as Parameters<typeof store.setRegistrationMarks>[0]);
     if (settings.rmp !== undefined) store.setRegistrationMarksPortrait(settings.rmp);
+    if (settings.rml !== undefined) store.setRegistrationMarkLengthMm(settings.rml);
 
     // Spacing/Position
     if (settings.spc !== undefined) store.setCardSpacingMm(settings.spc);

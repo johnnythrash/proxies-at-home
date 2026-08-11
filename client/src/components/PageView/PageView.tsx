@@ -87,6 +87,7 @@ export function PageView({ cards, allCards, images, mobile, active = true }: Pag
   const cutGuideLengthMm = useSettingsStore((s) => s.cutGuideLengthMm);
   const registrationMarks = useSettingsStore((s) => s.registrationMarks);
   const registrationMarksPortrait = useSettingsStore((s) => s.registrationMarksPortrait);
+  const registrationMarkLengthMm = useSettingsStore((s) => s.registrationMarkLengthMm);
 
   // Flipped cards for back image display
   const flippedCards = useSelectionStore((s) => s.flippedCards);
@@ -794,6 +795,7 @@ export function PageView({ cards, allCards, images, mobile, active = true }: Pag
                   cutGuideLengthMm={cutGuideLengthMm}
                   registrationMarks={registrationMarks}
                   registrationMarksPortrait={registrationMarksPortrait}
+                  registrationMarkLengthMm={registrationMarkLengthMm}
                   isDarkMode={isDarkMode}
                   onRenderedCardsChange={setRenderedCardUuids}
                   style={{
