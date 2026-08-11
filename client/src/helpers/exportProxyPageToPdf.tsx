@@ -77,6 +77,7 @@ export async function exportProxyPagesToPdf({
     cutGuideLengthMm,
     registrationMarks,
     registrationMarksPortrait,
+    registrationMarkLengthMm,
     rightAlignRows,
     darkenThreshold,
     darkenContrast,
@@ -285,6 +286,7 @@ export async function exportProxyPagesToPdf({
                       cutGuideLengthMm,
                       registrationMarks,
                       registrationMarksPortrait,
+                      registrationMarkLengthMm,
                       // Pass normalized source settings directly (no legacy conversion)
                       sourceSettings,
                       withBleedSourceAmount,

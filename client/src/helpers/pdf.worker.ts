@@ -33,6 +33,7 @@ import {
 import { db, type EffectCacheEntry } from "../db";
 import type { CardOption, CardOverrides } from "../../../shared/types";
 import { debugLog } from "./debug";
+import { getCanvasPlacement } from "./pdfCanvasSizing";
 import { IN_TO_PX, MM_TO_PX } from "@/constants/commonConstants";
 import type { WorkerSuccessResponse } from "./imageProcessor";
 
@@ -1340,7 +1341,7 @@ self.onmessage = async (event: MessageEvent) => {
         const expectedWidth = cardLayout.cardWidthPx;
         const expectedHeight = cardLayout.cardHeightPx;
 
-        // Trim if actual dimensions don't match expected (handles both excess bleed AND rounding differences)
+        // Normalize mismatched canvases: crop excess bleed or upscale lower-resolution sources
         if (
           finalCardCanvas.width !== expectedWidth ||
           finalCardCanvas.height !== expectedHeight
@@ -1355,24 +1356,32 @@ self.onmessage = async (event: MessageEvent) => {
           if (!trimCtx)
             throw new Error("Failed to get 2d context for trim canvas");
 
-          // Calculate how much to trim from each side (centers the content)
-          // Use actual canvas dimensions, not calculated ones (handles WebGL rounding differences)
-          const actualWidth = finalCardCanvas.width;
-          const actualHeight = finalCardCanvas.height;
-          const trimOffsetX = (actualWidth - trimmedWidth) / 2;
-          const trimOffsetY = (actualHeight - trimmedHeight) / 2;
+          const placement = getCanvasPlacement(
+            finalCardCanvas.width,
+            finalCardCanvas.height,
+            trimmedWidth,
+            trimmedHeight
+          );
 
-          // Draw the centered portion of the source image
+          // Native-resolution sources such as Scryfall's 300 DPI PNGs must fill
+          // the same physical card slot as higher-resolution MPC/upload images.
+          // High-quality interpolation improves the enlargement but does not
+          // invent detail beyond the source image's native resolution.
+          if (placement.upscale) {
+            trimCtx.imageSmoothingEnabled = true;
+            trimCtx.imageSmoothingQuality = "high";
+          }
+
           trimCtx.drawImage(
             finalCardCanvas,
-            trimOffsetX,
-            trimOffsetY,
-            trimmedWidth,
-            trimmedHeight, // source rect
+            placement.sourceX,
+            placement.sourceY,
+            placement.sourceWidth,
+            placement.sourceHeight,
             0,
             0,
             trimmedWidth,
-            trimmedHeight // dest rect
+            trimmedHeight
           );
 
           trimmedCanvas = trimCanvas;
