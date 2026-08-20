@@ -1,6 +1,6 @@
 import logoSvg from "@/assets/logo.svg";
 import { Button } from "flowbite-react";
-import { ChevronDown, ChevronRight, Star, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, Star, RefreshCw } from "lucide-react";
 import { CardGrid } from "./CardGrid";
 import { CardArtFilterBar } from "./CardArtFilterBar/CardArtFilterBar";
 import { CardImageSvg } from "./CardImageSvg";
@@ -18,6 +18,7 @@ import {
 import {
   type MpcAutofillCard,
   getMpcAutofillImageUrl,
+  getMpcGoogleDriveUrl,
   extractMpcIdentifierFromImageId,
 } from "@/helpers/mpcAutofillApi";
 import { fetchScryfallSets } from "@/helpers/scryfallApi";
@@ -946,18 +947,31 @@ export function CardArtContent({
         </div>
         {/* Source & Tags - hover overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-2 rounded-b-[2.5mm] z-30 transition-opacity opacity-0 group-hover:opacity-100">
-          <div
-            className={`text-[10px] truncate max-w-full px-2 py-0.5 rounded transition-all inline-block mb-1 cursor-pointer hover:scale-105 active:scale-95 ${mpcData.filters.sourceFilters.has(card.sourceName)
-              ? "bg-blue-600 text-white hover:bg-blue-500"
-              : "bg-black/60 text-white hover:bg-black/80"
-              }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              mpcData.toggleSource(card.sourceName);
-            }}
-            title="Add source to filter"
-          >
-            {card.sourceName}
+          <div className="flex items-start justify-between gap-1">
+            <div
+              className={`text-[10px] truncate max-w-[calc(100%-2rem)] px-2 py-0.5 rounded transition-all inline-block mb-1 cursor-pointer hover:scale-105 active:scale-95 ${mpcData.filters.sourceFilters.has(card.sourceName)
+                ? "bg-blue-600 text-white hover:bg-blue-500"
+                : "bg-black/60 text-white hover:bg-black/80"
+                }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                mpcData.toggleSource(card.sourceName);
+              }}
+              title="Add source to filter"
+            >
+              {card.sourceName}
+            </div>
+            <a
+              href={getMpcGoogleDriveUrl(card.identifier)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded bg-black/60 p-1 text-white transition hover:scale-110 hover:bg-black/80"
+              title="Open original in Google Drive"
+              aria-label={`Open ${card.name || "MPCFill artwork"} in Google Drive`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <ExternalLink className="size-3.5" />
+            </a>
           </div>
           {card.tags && card.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">

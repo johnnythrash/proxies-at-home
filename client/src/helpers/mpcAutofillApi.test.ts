@@ -16,6 +16,7 @@ vi.mock("./mpcSearchCache", () => ({
 
 import {
     getMpcAutofillImageUrl,
+    getMpcGoogleDriveUrl,
     extractMpcIdentifierFromImageId,
     searchMpcAutofill,
     batchSearchMpcAutofill,
@@ -45,6 +46,14 @@ describe("mpcAutofillApi", () => {
             const result = getMpcAutofillImageUrl("abc123");
 
             expect(result).toBe("");
+        });
+    });
+
+    describe("getMpcGoogleDriveUrl", () => {
+        it("builds a public Drive file page URL", () => {
+            expect(getMpcGoogleDriveUrl("abc123")).toBe(
+                "https://drive.google.com/file/d/abc123/view"
+            );
         });
     });
 

@@ -19,6 +19,11 @@ export interface MpcAutofillCard {
     size: number;
 }
 
+/** Build the public Google Drive page for an MPCFill artwork file. */
+export function getMpcGoogleDriveUrl(identifier: string): string {
+    return `https://drive.google.com/file/d/${encodeURIComponent(identifier)}/view`;
+}
+
 
 interface MpcBatchSearchResponse {
     results: Record<string, MpcAutofillCard[]>;
