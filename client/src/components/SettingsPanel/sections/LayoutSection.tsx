@@ -16,6 +16,7 @@ export function LayoutSection() {
     const setRows = useSettingsStore((state) => state.setRows);
     const applyScmPreset = useSettingsStore((state) => state.applyScmPreset);
     const applyScmTabloidPreset = useSettingsStore((state) => state.applyScmTabloidPreset);
+    const applyScmMtgTabloidPreset = useSettingsStore((state) => state.applyScmMtgTabloidPreset);
     const registrationMarkLengthMm = useSettingsStore((state) => state.registrationMarkLengthMm);
     const isSilhouetteLetterActive =
         pageOrientation === "landscape" && pageWidth === 11 && pageHeight === 8.5 &&
@@ -23,6 +24,10 @@ export function LayoutSection() {
     const isSilhouetteTabloidActive =
         pageOrientation === "portrait" && pageWidth === 11 && pageHeight === 17 &&
         columns === 4 && rows === 4 && registrationMarks === "3" &&
+        Math.abs(registrationMarkLengthMm - 19.9898) < 0.001;
+    const isSilhouetteMtgTabloidActive =
+        pageOrientation === "portrait" && pageWidth === 11 && pageHeight === 17 &&
+        columns === 4 && rows === 4 && registrationMarks === "4" &&
         Math.abs(registrationMarkLengthMm - 19.9898) < 0.001;
 
     const columnsInput = useNormalizedInput(
@@ -47,11 +52,15 @@ export function LayoutSection() {
                         {isSilhouetteLetterActive && <span className="ml-2 text-xs text-green-700 dark:text-green-300">Active</span>}
                     </Button>
                     <Button color="gray" size="sm" onClick={applyScmTabloidPreset}>
-                        Tabloid MTG 4×4
+                        Tabloid 3-mark
                         {isSilhouetteTabloidActive && <span className="ml-2 text-xs text-green-700 dark:text-green-300">Active</span>}
                     </Button>
+                    <Button color="gray" size="sm" className="col-span-2" onClick={applyScmMtgTabloidPreset}>
+                        MTG Tabloid 4-mark
+                        {isSilhouetteMtgTabloidActive && <span className="ml-2 text-xs text-green-700 dark:text-green-300">Active</span>}
+                    </Button>
                 </div>
-                <AutoTooltip content="Alan Cha SCM presets. Tabloid MTG uses 11×17 portrait, a 4×4 grid, 0.625mm bleed, 2.5mm card corners, and 20mm registration arms." />
+                <AutoTooltip content="Alan Cha SCM presets. Both Tabloid layouts use 11×17 portrait, a 4×4 grid, 0.625mm bleed, 2.5mm card corners, and 20mm registration arms. Choose the mark layout matching your Silhouette project." />
             </div>
 
             <PageSizeControl />

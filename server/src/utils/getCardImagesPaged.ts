@@ -204,7 +204,7 @@ async function fetchPngsByQuery(query: string): Promise<string[]> {
   });
 }
 
-async function fetchCardsByQuery(query: string): Promise<ScryfallApiCard[]> {
+export async function fetchCardsByQuery(query: string): Promise<ScryfallApiCard[]> {
   return fetchAllPages(query, (card) => [card]);
 }
 

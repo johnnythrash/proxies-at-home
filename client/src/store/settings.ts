@@ -216,6 +216,7 @@ export type Store = {
   setAllSettings: (settings: Partial<Store>) => void;
   applyScmPreset: () => void;
   applyScmTabloidPreset: () => void;
+  applyScmMtgTabloidPreset: () => void;
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
 };
@@ -821,6 +822,61 @@ export const useSettingsStore = create<Store>()((set) => ({
       description: "Apply SCM Tabloid MTG preset",
       undo: async () => useSettingsStore.setState(oldSettings),
       redo: async () => useSettingsStore.setState(scmTabloidSettings),
+    });
+  },
+
+  applyScmMtgTabloidPreset: () => {
+    const currentState = useSettingsStore.getState();
+    const oldSettings = {
+      pageSizePreset: currentState.pageSizePreset,
+      pageOrientation: currentState.pageOrientation,
+      pageWidth: currentState.pageWidth,
+      pageHeight: currentState.pageHeight,
+      pageSizeUnit: currentState.pageSizeUnit,
+      columns: currentState.columns,
+      rows: currentState.rows,
+      bleedEdge: currentState.bleedEdge,
+      bleedEdgeWidth: currentState.bleedEdgeWidth,
+      bleedEdgeUnit: currentState.bleedEdgeUnit,
+      cardSpacingMm: currentState.cardSpacingMm,
+      cardPositionX: currentState.cardPositionX,
+      cardPositionY: currentState.cardPositionY,
+      registrationMarks: currentState.registrationMarks,
+      registrationMarksPortrait: currentState.registrationMarksPortrait,
+      registrationMarkLengthMm: currentState.registrationMarkLengthMm,
+      cutLineStyle: currentState.cutLineStyle,
+      perCardGuideStyle: currentState.perCardGuideStyle,
+    };
+
+    // MTG Tabloid 4-mark template: same 4x4 card geometry as the
+    // three-mark preset, but uses matching L-shaped marks in all corners.
+    const scmMtgTabloidSettings = {
+      pageSizePreset: "Tabloid" as LayoutPreset,
+      pageOrientation: "portrait" as PageOrientation,
+      pageWidth: 11,
+      pageHeight: 17,
+      pageSizeUnit: "in" as "in" | "mm",
+      columns: 4,
+      rows: 4,
+      bleedEdge: true,
+      bleedEdgeWidth: 0.625,
+      bleedEdgeUnit: "mm" as "mm" | "in",
+      cardSpacingMm: 0,
+      cardPositionX: 0,
+      cardPositionY: 0,
+      registrationMarks: "4" as "none" | "3" | "4" | "cricut",
+      registrationMarksPortrait: false,
+      registrationMarkLengthMm: 19.9898,
+      cutLineStyle: "none" as "none" | "edges" | "full",
+      perCardGuideStyle: "none" as const,
+    };
+
+    set(scmMtgTabloidSettings);
+    useUndoRedoStore.getState().pushAction({
+      type: "CHANGE_SETTING",
+      description: "Apply SCM MTG Tabloid 4-mark preset",
+      undo: async () => useSettingsStore.setState(oldSettings),
+      redo: async () => useSettingsStore.setState(scmMtgTabloidSettings),
     });
   },
   resetSettings: () => {

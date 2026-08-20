@@ -30,10 +30,11 @@ vi.mock("axios", () => {
 // Mock getCardsWithImagesForCardInfo
 vi.mock("../utils/getCardImagesPaged.js", () => ({
   getCardsWithImagesForCardInfo: vi.fn(),
+  fetchCardsByQuery: vi.fn(),
 }));
 
 import { scryfallRouter } from "./scryfallRouter.js";
-import { getCardsWithImagesForCardInfo } from "../utils/getCardImagesPaged.js";
+import { fetchCardsByQuery, getCardsWithImagesForCardInfo } from "../utils/getCardImagesPaged.js";
 
 describe("scryfallRouter - /prints", () => {
   let app: express.Application;
@@ -42,6 +43,7 @@ describe("scryfallRouter - /prints", () => {
     app = express();
     app.use("/api/scryfall", scryfallRouter);
     vi.clearAllMocks();
+    vi.mocked(fetchCardsByQuery).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -80,7 +82,7 @@ describe("scryfallRouter - /prints", () => {
       },
     ];
 
-    vi.mocked(getCardsWithImagesForCardInfo).mockResolvedValue(
+    vi.mocked(fetchCardsByQuery).mockResolvedValue(
       mockPrints as unknown as any
     );
 
@@ -123,7 +125,7 @@ describe("scryfallRouter - /prints", () => {
         image_uris: { png: "https://example.com/solring.png" },
       },
     ];
-    vi.mocked(getCardsWithImagesForCardInfo).mockResolvedValue(
+    vi.mocked(fetchCardsByQuery).mockResolvedValue(
       mockPrints as unknown as any
     );
 
@@ -131,5 +133,38 @@ describe("scryfallRouter - /prints", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.prints[0].faceName).toBe("Sol Ring");
+  });
+
+  it("lazily merges distinct selected-language art with Japanese Mystical Archive art", async () => {
+    vi.mocked(fetchCardsByQuery).mockResolvedValue([
+        {
+          id: "english-art",
+          name: "Opt",
+          set: "dom",
+          collector_number: "60",
+          lang: "en",
+          image_uris: { png: "https://example.com/opt-en.png" },
+        },
+        {
+          id: "japanese-sta-art",
+          name: "Opt",
+          set: "sta",
+          collector_number: "119",
+          lang: "ja",
+          image_uris: { png: "https://example.com/opt-sta-ja.png" },
+        },
+      ] as any);
+
+    const res = await request(app).get("/api/scryfall/prints?name=Opt&lang=en");
+
+    expect(res.status).toBe(200);
+    expect(fetchCardsByQuery).toHaveBeenCalledOnce();
+    expect(fetchCardsByQuery).toHaveBeenCalledWith(
+      '!"Opt" (lang:en or (set:sta lang:ja)) include:extras unique:art'
+    );
+    expect(res.body.prints.map((print: { lang: string }) => print.lang)).toEqual([
+      "en",
+      "ja",
+    ]);
   });
 });

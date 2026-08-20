@@ -18,6 +18,7 @@ const mockSetters = vi.hoisted(() => ({
     setRows: vi.fn(),
     applyScmPreset: vi.fn(),
     applyScmTabloidPreset: vi.fn(),
+    applyScmMtgTabloidPreset: vi.fn(),
 }));
 
 vi.mock('@/store/settings', () => ({
@@ -34,6 +35,7 @@ vi.mock('@/store/settings', () => ({
             setRows: mockSetters.setRows,
             applyScmPreset: mockSetters.applyScmPreset,
             applyScmTabloidPreset: mockSetters.applyScmTabloidPreset,
+            applyScmMtgTabloidPreset: mockSetters.applyScmMtgTabloidPreset,
         };
         return selector(state);
     }),
@@ -133,8 +135,14 @@ describe('LayoutSection', () => {
         });
         it('should apply the tabloid MTG preset', () => {
             render(<LayoutSection />);
-            fireEvent.click(screen.getByText('Tabloid MTG 4×4'));
+            fireEvent.click(screen.getByText('Tabloid 3-mark'));
             expect(mockSetters.applyScmTabloidPreset).toHaveBeenCalledOnce();
+        });
+
+        it('should apply the MTG Tabloid four-mark preset', () => {
+            render(<LayoutSection />);
+            fireEvent.click(screen.getByText('MTG Tabloid 4-mark'));
+            expect(mockSetters.applyScmMtgTabloidPreset).toHaveBeenCalledOnce();
         });
     });
 

@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { getDatabase } from "../db/db.js";
 import { debugLog } from "../utils/debug.js";
 import { isValidScryfallType, isKnownToken } from "../utils/scryfallCatalog.js";
-import { getCardsWithImagesForCardInfo } from "../utils/getCardImagesPaged.js";
+import { fetchCardsByQuery } from "../utils/getCardImagesPaged.js";
 
 const router = Router();
 
@@ -361,19 +361,20 @@ router.get("/prints", async (req: Request, res: Response) => {
     }
 
     const params = { name, lang };
-    const queryHash = getCacheKey("prints", params);
+    const queryHash = getCacheKey("prints-v2", params);
     const cached = getFromCache("prints", queryHash);
     if (cached) {
         return res.json(cached);
     }
 
     try {
-        // Fetch all prints using unique:prints mode
-        const allPrints = await getCardsWithImagesForCardInfo(
-            { name },
-            "prints", // Get all prints, not just unique art
-            lang,
-            true // fallback to English if no results in requested language
+        // Load distinct artwork only when the selector is opened. Japanese
+        // Mystical Archive artwork is language-exclusive, so merge that one
+        // targeted exception without pulling every language or every reprint.
+        const escapedName = name.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        const safeLang = /^[a-z]{2,3}$/i.test(lang) ? lang.toLowerCase() : "en";
+        const allPrints = await fetchCardsByQuery(
+            `!"${escapedName}" (lang:${safeLang} or (set:sta lang:ja)) include:extras unique:art`
         );
 
         // Extract prints with full metadata (including faceName for DFCs)

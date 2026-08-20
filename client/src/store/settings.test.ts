@@ -341,6 +341,23 @@ describe("useSettingsStore", () => {
             expect(state.bleedEdgeWidth).toBe(0.625);
             expect(state.bleedEdgeUnit).toBe("mm");
             expect(state.registrationMarks).toBe("3");
+            expect(state.registrationMarksPortrait).toBe(false);
+            expect(state.registrationMarkLengthMm).toBeCloseTo(19.9898);
+            expect(state.perCardGuideStyle).toBe("none");
+        });
+
+        it("applies the MTG Tabloid four-mark geometry", () => {
+            useSettingsStore.getState().applyScmMtgTabloidPreset();
+            const state = useSettingsStore.getState();
+
+            expect(state.pageSizePreset).toBe("Tabloid");
+            expect(state.pageOrientation).toBe("portrait");
+            expect([state.pageWidth, state.pageHeight]).toEqual([11, 17]);
+            expect([state.columns, state.rows]).toEqual([4, 4]);
+            expect(state.bleedEdgeWidth).toBe(0.625);
+            expect(state.cardSpacingMm).toBe(0);
+            expect(state.registrationMarks).toBe("4");
+            expect(state.registrationMarksPortrait).toBe(false);
             expect(state.registrationMarkLengthMm).toBeCloseTo(19.9898);
             expect(state.perCardGuideStyle).toBe("none");
         });

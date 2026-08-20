@@ -601,6 +601,7 @@ export interface CachedMetadata {
   size: number;       // Estimated size in bytes
   cacheVersion?: number;  // Schema version for targeted invalidation
   hasFullPrints?: boolean; // True if 'data.prints' contains complete list of standard prints
+  artworkCatalogVersion?: number; // Version of the lazy distinct-art query used for prints
 }
 
 // MPC search cache entry - for caching MPC Autofill search results

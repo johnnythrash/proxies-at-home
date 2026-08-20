@@ -290,7 +290,7 @@ export function CardArtContent({
   });
   const scryfallPrintsData = useScryfallPrints({
     name: query,
-    enabled: !isPokemon && artSource === "scryfall" && mode === "prints" && !initialPrints,
+    enabled: !isPokemon && artSource === "scryfall" && mode === "prints",
     initialPrints: isPokemon ? undefined : initialPrints,
   });
 

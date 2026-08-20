@@ -4,6 +4,8 @@ import { API_BASE } from "@/constants";
 import type { PrintInfo } from "@/types";
 import { db } from "@/db";
 
+const ARTWORK_CATALOG_VERSION = 2;
+
 export interface ScryfallPrintsResult {
   /** Array of print metadata */
   prints: PrintInfo[];
@@ -41,17 +43,18 @@ export function useScryfallPrints({
   const [prints, setPrints] = useState<PrintInfo[]>(initialPrints || []);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(
-    !!initialPrints && initialPrints.length > 0
+    false
   );
 
   // Refs for request management
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentNameRef = useRef<string>("");
 
-  // Sync name ref if initial prints are provided or if disabled but query matches
+  // Partial import/search results are useful as an immediate display seed, but
+  // they must not suppress the lazy full-artwork lookup.
   useEffect(() => {
     if (initialPrints && initialPrints.length > 0) {
-      currentNameRef.current = name.trim();
+      setPrints(initialPrints);
     }
   }, [initialPrints, name]);
 
@@ -66,19 +69,6 @@ export function useScryfallPrints({
 
     // Skip if same name requested
     if (currentNameRef.current === trimmedName && hasSearched) return;
-
-    // If initialPrints are provided for this specific name, use them immediately
-    if (initialPrints && initialPrints.length > 0) {
-      // Basic check: if initialPrints exist, they likely match the new name (since they are passed down together from the parent who resolved them)
-      // This prevents the "flash" of empty state when navigating to a card we already have prints for in the modal's `previewCardData`.
-      const doesInitialPrintsMatchName = initialPrints.length > 0;
-      if (doesInitialPrintsMatchName) {
-        setPrints(initialPrints);
-        setHasSearched(true);
-        currentNameRef.current = trimmedName;
-        return;
-      }
-    }
 
     const performFetch = async () => {
       currentNameRef.current = trimmedName;
@@ -103,6 +93,7 @@ export function useScryfallPrints({
         if (
           cached &&
           cached.hasFullPrints &&
+          cached.artworkCatalogVersion === ARTWORK_CATALOG_VERSION &&
           cached.data?.prints &&
           Array.isArray(cached.data.prints)
         ) {
@@ -137,6 +128,7 @@ export function useScryfallPrints({
             .equals(trimmedName)
             .modify((entry) => {
               entry.hasFullPrints = true;
+              entry.artworkCatalogVersion = ARTWORK_CATALOG_VERSION;
               // Merge prints into data object
               if (typeof entry.data === "object" && entry.data !== null) {
                 // We know it's an object, safe to spread and assign
