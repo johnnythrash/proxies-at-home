@@ -1,6 +1,6 @@
 import { ToggleButtonGroup, type ToggleButtonGroupProps } from './ToggleButtonGroup';
 import { useSettingsStore } from '@/store/settings';
-import { getTcgConfig, getSearchSourceLabel, getSearchSourceColor, hasMpcSource } from '@/config/tcgConfig';
+import { getTcgConfig, getSearchSourceLabel, getSearchSourceColor, hasMpcSource, type TcgId } from '@/config/tcgConfig';
 
 import { ImageSource } from '@/types';
 
@@ -13,6 +13,7 @@ type ArtSourceToggleProps = {
     onChange: (value: ArtSource) => void;
     reversed?: boolean;
     showUploadLibrary?: boolean;
+    tcgOverride?: TcgId;
 } & Omit<ToggleButtonGroupProps<ArtSource>, 'options' | 'value' | 'onChange'>;
 
 export function ArtSourceToggle({
@@ -20,10 +21,11 @@ export function ArtSourceToggle({
     onChange,
     reversed = false,
     showUploadLibrary = false,
+    tcgOverride,
     ...rest
 }: ArtSourceToggleProps) {
     const activeTcg = useSettingsStore((s) => s.activeTcg ?? 'mtg');
-    const cfg = getTcgConfig(activeTcg);
+    const cfg = getTcgConfig(tcgOverride ?? activeTcg);
 
     const baseOptions: Array<{ id: ArtSource; label: string; highlightColor: string }> = [
         { id: ImageSource.Scryfall, label: getSearchSourceLabel(cfg), highlightColor: getSearchSourceColor(cfg) },

@@ -476,6 +476,7 @@ export class ImportOrchestrator {
                 cmc: data.cmc,
                 type_line: data.type_line,
                 rarity: data.rarity,
+                securityStamp: data.securityStamp,
                 mana_cost: data.mana_cost,
                 token_parts: data.token_parts,
                 needs_token: !!data.token_parts?.length,

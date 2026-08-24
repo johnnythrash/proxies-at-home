@@ -10,7 +10,9 @@ import { BleedModeControl } from "./BleedModeControl";
 import { getHasBuiltInBleed } from "@/helpers/imageSpecs";
 import { AutoTooltip } from "../common";
 import { db } from "@/db";
-import { Palette } from "lucide-react";
+import { Eraser, Palette } from "lucide-react";
+import { ImageSource } from "../../../../shared/types";
+import { useToastStore } from "@/store/toast";
 
 interface ArtworkBleedSettingsProps {
     selectedFace: 'front' | 'back';
@@ -84,6 +86,21 @@ export function ArtworkBleedSettings({ selectedFace }: ArtworkBleedSettingsProps
 
     const isBackTab = selectedFace === 'back';
     const hasLinkedBack = !!linkedBackCard;
+    const canRemoveRarityStamp = selectedFace === 'front' && activeCard?.source === ImageSource.Scryfall && activeCard.securityStamp === 'oval';
+
+    const toggleRarityStampRemoval = useCallback(async (enabled: boolean) => {
+        if (!activeCard || !canRemoveRarityStamp) return;
+        const overrides = { ...activeCard.overrides, removeRarityStamp: enabled };
+        await db.cards.update(activeCard.uuid, { overrides });
+        if (activeCard.uuid === modalCard?.uuid) {
+            useArtworkModalStore.getState().updateCard({ ...activeCard, overrides });
+        }
+        useToastStore.getState().addToast({
+            message: enabled ? "Experimental stamp removal enabled" : "Original stamp restored",
+            type: "success",
+            dismissible: true,
+        });
+    }, [activeCard, canRemoveRarityStamp, modalCard?.uuid]);
 
     const editSameAsFront = useCallback((v: boolean) => { userEditedRef.current = true; setSameAsFront(v); }, []);
     const editHasBleedBuiltIn = useCallback((v: boolean) => { userEditedRef.current = true; setHasBleedBuiltIn(v); }, []);
@@ -189,6 +206,23 @@ export function ArtworkBleedSettings({ selectedFace }: ArtworkBleedSettingsProps
                 )}
                 {(selectedFace === 'front' || !sameAsFront) && (
                     <div className="space-y-6">
+                        {canRemoveRarityStamp && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Eraser className="size-5 text-gray-500 dark:text-gray-300" />
+                                    <h3 className="text-lg font-medium dark:text-white">Frame Cleanup</h3>
+                                </div>
+                                <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                    <div className="flex items-start gap-2">
+                                        <Checkbox id="remove-rarity-stamp" checked={activeCard?.overrides?.removeRarityStamp === true} onChange={(e) => void toggleRarityStampRemoval(e.target.checked)} className="mt-0.5" />
+                                        <div>
+                                            <Label htmlFor="remove-rarity-stamp" className="cursor-pointer font-medium dark:text-white">Remove rarity stamp</Label>
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Experimental: blends over the oval rarity stamp while keeping the frame bump.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-medium dark:text-white">Bleed Settings</h3>
                             <AutoTooltip

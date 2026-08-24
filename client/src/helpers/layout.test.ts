@@ -3,6 +3,7 @@ import {
     getCardTargetBleed,
     computeCardLayouts,
     computeGridDimensions,
+    computePixelOffsets,
     chunkCards,
     type SourceTypeSettings,
     type CardLayoutInfo,
@@ -94,6 +95,20 @@ describe('getCardTargetBleed', () => {
             const settings = { ...defaultSourceSettings, noBleedTargetMode: 'none' as const };
             expect(getCardTargetBleed(standardCard, settings, globalBleedWidth)).toBe(0);
         });
+    });
+});
+
+describe('computePixelOffsets', () => {
+    it.each([
+        [300, [0, 1054, 2108, 3162], 4217],
+        [600, [0, 2108, 4217, 6325], 8433],
+        [900, [0, 3162, 6325, 9487], 12650],
+        [1200, [0, 4217, 8433, 12650], 16866],
+    ])('avoids cumulative tabloid row drift at %i DPI', (dpi, expectedOffsets, expectedTotal) => {
+        const result = computePixelOffsets([89.25, 89.25, 89.25, 89.25], 0, dpi);
+
+        expect(result.offsetsPx).toEqual(expectedOffsets);
+        expect(result.totalPx).toBe(expectedTotal);
     });
 });
 

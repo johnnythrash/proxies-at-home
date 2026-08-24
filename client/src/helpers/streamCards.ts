@@ -468,10 +468,27 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
                 const exactKey = cardKey({ name: card.name, set: card.set, number: card.number });
                 const setOnlyKey = card.set ? cardKey({ name: card.name, set: card.set }) : null;
                 const nameOnlyKey = cardKey({ name: card.name });
+                const requestedNameKey = card.requestedName
+                    ? cardKey({ name: card.requestedName })
+                    : null;
 
-                let entry = quantityByKey.get(exactKey)
+                let entry = (requestedNameKey && quantityByKey.get(requestedNameKey))
+                    || quantityByKey.get(exactKey)
                     || (setOnlyKey && quantityByKey.get(setOnlyKey))
                     || quantityByKey.get(nameOnlyKey);
+
+                // Palworld decklists may contain only a collector number (or append
+                // one to the name). The server returns the canonical card name, so
+                // fall back to matching the original intent by that number.
+                if (!entry && tcg === 'palworld' && card.number) {
+                    const responseNumber = card.number.toUpperCase();
+                    entry = [...quantityByKey.values()].find(({ info }) => {
+                        const explicitNumber = info.number
+                            ? `${info.set ? `${info.set}-` : ''}${info.number}`.toUpperCase()
+                            : info.name.match(/\b(?:EBP\d{2}|ETD\d{2}|EPR|ESOUL)-\d{3}(?:[A-Z]+)?\b/i)?.[0].toUpperCase();
+                        return explicitNumber === responseNumber;
+                    });
+                }
 
                 const hasDfcBack = card.card_faces && card.card_faces.length > 1;
                 let isBackFaceImport = false;
@@ -524,6 +541,7 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
                     isToken: entry?.info.isToken,
                     isBackFaceImport,
                     projectId,
+                    source: tcg === 'palworld' ? ImageSource.Palworld : tcg === 'pokemon' ? ImageSource.TCGdex : ImageSource.Scryfall,
                 });
 
                 // Fidelity: preferredImageId is handled per-instance below
@@ -613,7 +631,7 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
                                     isFlipped: cardData.isFlipped,
                                     hasBuiltInBleed: false,
                                     needsEnrichment: false,
-                                    source: ImageSource.Scryfall,
+                                    source: tcg === 'palworld' ? ImageSource.Palworld : tcg === 'pokemon' ? ImageSource.TCGdex : ImageSource.Scryfall,
                                 });
                             }
                         });
@@ -670,7 +688,7 @@ export async function streamCards(options: StreamCardsOptions): Promise<StreamCa
                                     ...template,
                                     order: instance.order,
                                     ...(instanceImageId && { imageId: instanceImageId }),
-                                    source: ImageSource.Scryfall,
+                                    source: tcg === 'palworld' ? ImageSource.Palworld : tcg === 'pokemon' ? ImageSource.TCGdex : ImageSource.Scryfall,
                                 });
 
                                 for (const task of templateBackTasks) {

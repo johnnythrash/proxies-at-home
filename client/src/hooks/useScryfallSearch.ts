@@ -181,6 +181,7 @@ export function useScryfallSearch(
                   cmc: data.cmc,
                   type_line: data.type_line,
                   rarity: data.rarity,
+                  securityStamp: data.security_stamp ?? 'none',
                 },
               ];
             }

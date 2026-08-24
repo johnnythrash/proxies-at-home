@@ -15,6 +15,7 @@ import { SplitButton } from "../common";
 import { extractMpcIdentifierFromImageId } from "@/helpers/mpcAutofillApi";
 import type { CardOption } from "../../../../shared/types";
 import { CONSTANTS } from "@/constants/commonConstants";
+import { sliceCardsForPdfPages, type PdfPageRange } from "@/helpers/pdfPageRange";
 
 type Props = {
   cards: CardOption[]; // Passed from parent to avoid redundant DB query
@@ -72,6 +73,10 @@ export function ExportActions({ cards }: Props) {
   const [isCopyDropdownOpen, setIsCopyDropdownOpen] = useState(false);
   const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = useState(false);
   const [isImageExportDropdownOpen, setIsImageExportDropdownOpen] = useState(false);
+  const [showPdfPagesModal, setShowPdfPagesModal] = useState(false);
+  const [pdfPageScope, setPdfPageScope] = useState<"all" | "range">("all");
+  const [pdfStartPage, setPdfStartPage] = useState("1");
+  const [pdfEndPage, setPdfEndPage] = useState("1");
 
   // Mode state for Copy/Download (similar to exportMode for PDF)
   const [copyMode, setCopyMode] = useState<CopyMode>('withMpc');
@@ -211,7 +216,7 @@ export function ExportActions({ cards }: Props) {
     linkedBackId: undefined,
   });
 
-  const handleExport = async () => {
+  const handleExport = async (pageRange: PdfPageRange | null = null) => {
     if (!frontCards.length) return;
 
     const { exportProxyPagesToPdf } = await import(
@@ -254,6 +259,7 @@ export function ExportActions({ cards }: Props) {
       // Get normalized settings at export time (consistent with display path)
       const pdfSettings = serializePdfSettingsForWorker();
       const startTime = performance.now();
+      const cardsPerPage = Math.max(1, pdfSettings.columns * (pdfSettings.rows ?? 1));
 
       const useCustomBackOffset = useSettingsStore.getState().useCustomBackOffset;
       const cardBackPositionX = useSettingsStore.getState().cardBackPositionX;
@@ -325,14 +331,42 @@ export function ExportActions({ cards }: Props) {
         case 'duplex': {
           // All fronts, then all backs (mirrored for duplex printing)
           // Export fronts first, then backs with right-alignment, merged into single PDF
-          const backCards = await buildBackCardsForExport();
+          const allBackCards = await buildBackCardsForExport();
+          const frontPageCount = Math.ceil(frontCards.length / cardsPerPage);
+
+          let selectedFrontCards = frontCards;
+          let selectedBackCards = allBackCards;
+
+          if (pageRange) {
+            const frontStart = Math.max(1, pageRange.startPage);
+            const frontEnd = Math.min(frontPageCount, pageRange.endPage);
+            selectedFrontCards = frontStart <= frontEnd
+              ? sliceCardsForPdfPages(frontCards, cardsPerPage, {
+                  startPage: frontStart,
+                  endPage: frontEnd,
+                })
+              : [];
+
+            const backStart = Math.max(frontPageCount + 1, pageRange.startPage);
+            const backEnd = Math.min(frontPageCount * 2, pageRange.endPage);
+            selectedBackCards = backStart <= backEnd
+              ? sliceCardsForPdfPages(allBackCards, cardsPerPage, {
+                  startPage: backStart - frontPageCount,
+                  endPage: backEnd - frontPageCount,
+                })
+              : [];
+
+            if (!selectedFrontCards.length && !selectedBackCards.length) {
+              throw new Error("The selected page range is outside this PDF.");
+            }
+          }
 
           // Import PDFDocument for merging
           const { PDFDocument } = await import('pdf-lib');
 
           // Export fronts (normal left-aligned) - get buffer
           const frontsBuffer = await exportProxyPagesToPdf({
-            cards: frontCards,
+            cards: selectedFrontCards,
             imagesById,
             pdfSettings,
             onProgress: (p) => setProgress(p * 0.45), // First 45% of progress
@@ -348,7 +382,7 @@ export function ExportActions({ cards }: Props) {
             pdfSettingsForBacks.cardPositionY = cardBackPositionY;
           }
           const backsBuffer = await exportProxyPagesToPdf({
-            cards: backCards,
+            cards: selectedBackCards,
             imagesById,
             pdfSettings: pdfSettingsForBacks,
             onProgress: (p) => setProgress(45 + p * 0.45), // 45-90% of progress
@@ -378,7 +412,8 @@ export function ExportActions({ cards }: Props) {
 
           // Download merged PDF
           const date = new Date().toISOString().slice(0, 10);
-          const filename = `proxxies_${date}_duplex.pdf`;
+          const rangeSuffix = pageRange ? "_pages-" + pageRange.startPage + "-" + pageRange.endPage : "";
+          const filename = "proxxies_" + date + "_duplex" + rangeSuffix + ".pdf";
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const blob = new Blob([mergedPdfFile as any], { type: "application/pdf" });
           const url = URL.createObjectURL(blob);
@@ -406,6 +441,14 @@ export function ExportActions({ cards }: Props) {
             pdfSettings.cardPositionY = cardBackPositionY;
           }
           break;
+      }
+
+      cardsToExport = sliceCardsForPdfPages(cardsToExport, cardsPerPage, pageRange);
+      if (!cardsToExport.length) {
+        throw new Error("The selected page range is outside this PDF.");
+      }
+      if (pageRange) {
+        filenameSuffix += "_pages-" + pageRange.startPage + "-" + pageRange.endPage;
       }
 
       await exportProxyPagesToPdf({
@@ -503,7 +546,7 @@ export function ExportActions({ cards }: Props) {
         sublabel={EXPORT_MODES.find(m => m.value === exportMode)?.label}
         color="green"
         disabled={!frontCards.length}
-        onClick={handleExport}
+        onClick={() => setShowPdfPagesModal(true)}
         isOpen={isDropdownOpen}
         onToggle={() => setIsDropdownOpen(!isDropdownOpen)}
         onClose={() => setIsDropdownOpen(false)}
@@ -564,6 +607,85 @@ export function ExportActions({ cards }: Props) {
         icon={Download}
       />
 
+
+      {showPdfPagesModal && createPortal(
+        <div className="fixed inset-0 z-100 bg-gray-900/50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-96">
+            <div className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+              Choose PDF Pages
+            </div>
+            <div className="space-y-3 text-gray-700 dark:text-gray-200">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="pdfPageScope"
+                  checked={pdfPageScope === "all"}
+                  onChange={() => setPdfPageScope("all")}
+                />
+                All pages
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="pdfPageScope"
+                  checked={pdfPageScope === "range"}
+                  onChange={() => setPdfPageScope("range")}
+                />
+                Page or range
+              </label>
+              {pdfPageScope === "range" && (
+                <div className="flex items-center gap-2 pl-6">
+                  <input
+                    type="number"
+                    min="1"
+                    value={pdfStartPage}
+                    onChange={(event) => setPdfStartPage(event.target.value)}
+                    aria-label="First PDF page"
+                    className="w-20 rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <span>to</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={pdfEndPage}
+                    onChange={(event) => setPdfEndPage(event.target.value)}
+                    aria-label="Last PDF page"
+                    className="w-20 rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                </div>
+              )}
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Use the same number twice to export one page. Page numbers are inclusive.
+              </p>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button color="gray" onClick={() => setShowPdfPagesModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                color="green"
+                disabled={
+                  pdfPageScope === "range" &&
+                  (!Number.isInteger(Number(pdfStartPage)) ||
+                    !Number.isInteger(Number(pdfEndPage)) ||
+                    Number(pdfStartPage) < 1 ||
+                    Number(pdfEndPage) < Number(pdfStartPage))
+                }
+                onClick={() => {
+                  const range = pdfPageScope === "range"
+                    ? { startPage: Number(pdfStartPage), endPage: Number(pdfEndPage) }
+                    : null;
+                  setShowPdfPagesModal(false);
+                  void handleExport(range);
+                }}
+              >
+                Export
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showErrorModal && errorMessage && createPortal(
         <div className="fixed inset-0 z-100 bg-gray-900/50 flex items-center justify-center">

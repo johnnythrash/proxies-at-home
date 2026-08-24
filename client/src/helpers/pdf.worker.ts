@@ -15,6 +15,7 @@ import {
   getCardTargetBleed,
   computeCardLayouts,
   computeGridDimensions,
+  computePixelOffsets,
 } from "./layout";
 import {
   getEffectiveBleedMode,
@@ -713,30 +714,16 @@ self.onmessage = async (event: MessageEvent) => {
     const colWidths = colWidthsMm.map((w) => MM_TO_PX(w, DPI));
     const rowHeights = rowHeightsMm.map((h) => MM_TO_PX(h, DPI));
 
-    // Compute grid dimensions and starting position
-    const gridWidthPx =
-      colWidths.reduce((a, b) => a + b, 0) +
-      Math.max(0, columns - 1) * spacingPx;
-    const gridHeightPx =
-      rowHeights.reduce((a, b) => a + b, 0) + Math.max(0, rows - 1) * spacingPx;
+    // Derive each slot from its absolute physical coordinate. Repeatedly
+    // adding rounded pixel widths makes later rows drift at some export DPIs.
+    const { offsetsPx: colOffsets, totalPx: gridWidthPx } =
+      computePixelOffsets(colWidthsMm, cardSpacingMm, DPI);
+    const { offsetsPx: rowOffsets, totalPx: gridHeightPx } =
+      computePixelOffsets(rowHeightsMm, cardSpacingMm, DPI);
     const startX =
       Math.round((pageWidthPx - gridWidthPx) / 2) + positionOffsetXPx;
     const startY =
       Math.round((pageHeightPx - gridHeightPx) / 2) + positionOffsetYPx;
-
-    // Precompute column X offsets and row Y offsets
-    const colOffsets: number[] = [];
-    let cumX = 0;
-    for (let c = 0; c < columns; c++) {
-      colOffsets.push(cumX);
-      cumX += colWidths[c] + spacingPx;
-    }
-    const rowOffsets: number[] = [];
-    let cumY = 0;
-    for (let r = 0; r < rows; r++) {
-      rowOffsets.push(cumY);
-      cumY += rowHeights[r] + spacingPx;
-    }
 
     const canvas = new OffscreenCanvas(pageWidthPx, pageHeightPx);
     const ctx = canvas.getContext("2d")!;

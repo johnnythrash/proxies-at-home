@@ -50,6 +50,7 @@ export interface RawScryfallCard {
   cmc?: number;
   type_line?: string;
   rarity?: string;
+  security_stamp?: string;
   released_at?: string;
   image_uris?: {
     png?: string;
@@ -120,6 +121,7 @@ function mapScryfallDataToCard(data: RawScryfallCard): ScryfallCard {
     cmc: data.cmc,
     type_line: data.type_line,
     rarity: data.rarity,
+    securityStamp: data.security_stamp ?? 'none',
     released_at: data.released_at,
     card_faces: data.card_faces ? data.card_faces.map((face, index) => ({
       name:

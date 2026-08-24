@@ -56,8 +56,8 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
     const [localSource, setLocalSource] = useState<'scryfall' | 'mpc'>(
         preferredArtSource === 'mpc' ? 'mpc' : 'scryfall'
     );
-    // Pokemon always uses its own source regardless of localSource.
-    const effectiveSource = activeTcg === 'pokemon' ? 'scryfall' : localSource;
+    // Non-MTG games always use their own source regardless of localSource.
+    const effectiveSource = activeTcg !== 'mtg' ? 'scryfall' : localSource;
 
     // Check if we have cards that need tokens but don't have them
     const currentProjectId = useProjectStore((state) => state.currentProjectId);
@@ -223,6 +223,8 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
                                 className="underline hover:text-blue-600 dark:hover:text-blue-400">
                                 TCGdex<ExternalLink className="inline-block size-4 ml-1" />
                             </a>
+                        ) : activeTcg === 'palworld' ? (
+                            <span>Local Palworld collection</span>
                         ) : effectiveSource === 'mpc' ? (
                             <a href="https://mpcfill.com" target="_blank" rel="noopener noreferrer"
                                 className="underline hover:text-blue-600 dark:hover:text-blue-400">
@@ -236,7 +238,7 @@ export function DecklistUploader({ mobile, cardCount, onUploadComplete }: Props)
                         )}
                         )
                     </h6>
-                    {activeTcg !== 'pokemon' && (
+                    {activeTcg === 'mtg' && (
                         <ToggleButtonGroup
                             options={[
                                 { id: 'scryfall', label: 'Scryfall' },

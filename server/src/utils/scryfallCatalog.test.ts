@@ -90,11 +90,11 @@ describe('scryfallCatalog', () => {
             await initCatalogs();
 
             // Should have called fetch for each of the 9 catalogs
-            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/supertypes');
-            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/card-types');
-            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/artifact-types');
-            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/creature-types');
-            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/land-types');
+            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/supertypes', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
+            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/card-types', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
+            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/artifact-types', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
+            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/creature-types', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
+            expect(mockFetch).toHaveBeenCalledWith('https://api.scryfall.com/catalog/land-types', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
             expect(mockFetch).toHaveBeenCalledTimes(9);
         });
 

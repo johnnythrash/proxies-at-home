@@ -5,6 +5,7 @@ out vec4 finalColor;
 
 uniform sampler2D uTexture;
 uniform vec2 uResolution;
+uniform float uRemoveRarityStamp; // 0 or 1 (experimental Scryfall stamp cleanup)
 uniform float uBrightness;   // -100 to +100
 uniform float uContrast;     // 0.5-2.0
 uniform float uSaturation;   // 0-2.0
@@ -531,9 +532,111 @@ vec3 applyGamma(vec3 color) {
     return pow(color, vec3(1.0 / uGamma));
 }
 
+vec3 applyRarityStampRemoval(vec3 color, vec2 uv) {
+    if (uRemoveRarityStamp <= 0.0) return color;
+
+    vec2 normalizedUv = getNormalizedUv(uv);
+    float textureAspect = uResolution.x / max(uResolution.y, 1.0);
+
+    // Infer equal physical bleed around a 2.5 x 3.5 inch card.
+    float denominator = 2.0 * textureAspect - 2.0;
+    float bleedInches = abs(denominator) > 0.0001
+        ? clamp((2.5 - 3.5 * textureAspect) / denominator, 0.0, 0.25)
+        : 0.0;
+    vec2 totalSize = vec2(2.5 + 2.0 * bleedInches, 3.5 + 2.0 * bleedInches);
+    vec2 contentOffset = vec2(bleedInches) / totalSize;
+    vec2 contentScale = vec2(2.5, 3.5) / totalSize;
+    vec2 cardUv = (normalizedUv - contentOffset) / contentScale;
+
+    // Standard modern-frame security stamp. Reconstruct the oval from clean
+    // collector-strip texture on either side while leaving the outer frame bump.
+    vec2 stampCenter = vec2(0.5, 0.935);
+    vec2 stampRadius = vec2(0.054, 0.0175);
+    vec2 ellipse = (cardUv - stampCenter) / stampRadius;
+    float distanceFromCenter = length(ellipse);
+    float mask = 1.0 - smoothstep(0.90, 1.00, distanceFromCenter);
+    if (mask <= 0.0) return color;
+
+    // Sample the clean boundary around this exact point on all four sides.
+    // This is a single-pass approximation of Poisson/content-aware inpainting:
+    // opposing boundary colors are continued inward and weighted by proximity.
+    float safeX = clamp(abs(ellipse.x), 0.0, 0.999);
+    float safeY = clamp(abs(ellipse.y), 0.0, 0.999);
+    float horizontalExtent = sqrt(max(1.0 - safeY * safeY, 0.0));
+    float verticalExtent = sqrt(max(1.0 - safeX * safeX, 0.0));
+    float sourceRing = 1.06;
+
+    vec2 leftCardUv = vec2(
+        stampCenter.x - stampRadius.x * horizontalExtent * sourceRing,
+        cardUv.y
+    );
+    vec2 rightCardUv = vec2(
+        stampCenter.x + stampRadius.x * horizontalExtent * sourceRing,
+        cardUv.y
+    );
+    vec2 topCardUv = vec2(
+        cardUv.x,
+        stampCenter.y - stampRadius.y * verticalExtent * sourceRing
+    );
+    vec2 bottomCardUv = vec2(
+        cardUv.x,
+        stampCenter.y + stampRadius.y * verticalExtent * sourceRing
+    );
+
+    vec2 leftUv = contentOffset + leftCardUv * contentScale;
+    vec2 rightUv = contentOffset + rightCardUv * contentScale;
+    vec2 topUv = contentOffset + topCardUv * contentScale;
+    vec2 bottomUv = contentOffset + bottomCardUv * contentScale;
+#ifdef IS_PIXI
+    vec2 pixiRatio = uOutputFrame.zw * uInputSize.zw;
+    leftUv *= pixiRatio;
+    rightUv *= pixiRatio;
+    topUv *= pixiRatio;
+    bottomUv *= pixiRatio;
+#endif
+
+    vec3 left = texture(uTexture, leftUv).rgb;
+    vec3 right = texture(uTexture, rightUv).rgb;
+    vec3 top = texture(uTexture, topUv).rgb;
+    vec3 bottom = texture(uTexture, bottomUv).rgb;
+
+    float horizontalMix = clamp(
+        (ellipse.x + horizontalExtent) / max(2.0 * horizontalExtent, 0.001),
+        0.0,
+        1.0
+    );
+    float verticalMix = clamp(
+        (ellipse.y + verticalExtent) / max(2.0 * verticalExtent, 0.001),
+        0.0,
+        1.0
+    );
+    horizontalMix = horizontalMix * horizontalMix * (3.0 - 2.0 * horizontalMix);
+    verticalMix = verticalMix * verticalMix * (3.0 - 2.0 * verticalMix);
+
+    vec3 horizontalFill = mix(left, right, horizontalMix);
+    vec3 verticalFill = mix(top, bottom, verticalMix);
+    float distanceToHorizontalBoundary = max(horizontalExtent - abs(ellipse.x), 0.001);
+    float distanceToVerticalBoundary = max(verticalExtent - abs(ellipse.y), 0.001);
+    float horizontalWeight = distanceToVerticalBoundary /
+        (distanceToHorizontalBoundary + distanceToVerticalBoundary);
+
+    // Collector text and the frame rim can sit immediately above/below the foil.
+    // Reject those vertical samples when they disagree with the clean same-row
+    // strip, preventing bright glyphs or gold pixels from leaking into the fill.
+    float verticalAgreement = 1.0 - smoothstep(
+        0.035,
+        0.16,
+        distance(verticalFill, horizontalFill)
+    );
+    float verticalContribution = (1.0 - horizontalWeight) * verticalAgreement * 0.45;
+    vec3 reconstructed = mix(horizontalFill, verticalFill, verticalContribution);
+    return mix(color, reconstructed, mask);
+}
 void main() {
     vec4 color = texture(uTexture, vTextureCoord);
     vec3 rgb = color.rgb;
+
+    rgb = applyRarityStampRemoval(rgb, vTextureCoord);
     
     rgb = applyNoiseReduction(rgb, vTextureCoord);
     rgb = applySharpness(rgb, vTextureCoord);

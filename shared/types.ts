@@ -12,6 +12,7 @@ export const ImageSource = {
   MPC: 'mpc',
   Scryfall: 'scryfall',
   TCGdex: 'tcgdex',
+  Palworld: 'palworld',
   UploadLibrary: 'upload-library',
   Cardback: 'cardback'
 } as const;
@@ -26,6 +27,9 @@ export type CardbackSource = 'builtin' | 'uploaded' | 'mpc';
  * Same structure as global params for M2 compatibility.
  */
 export interface CardOverrides {
+  // Experimental cleanup
+  removeRarityStamp?: boolean;
+
   // Basic adjustments
   brightness?: number; // -50 to +50
   contrast?: number; // 0.5-2.0
@@ -117,6 +121,7 @@ export interface CardOption {
   cmc?: number;
   type_line?: string;
   rarity?: string;
+  securityStamp?: string;
   category?: string; // Archidekt deck category (Commander, Mainboard, Sideboard, etc.)
   // Enrichment tracking
   needsEnrichment?: boolean;
@@ -149,11 +154,14 @@ export interface PrintInfo {
   number: string;
   lang?: string;
   rarity?: string;
+  securityStamp?: string;
   faceName?: string; // For DFCs: the specific face name this image belongs to
   [key: string]: string | undefined;
 }
 
 export interface ScryfallCard {
+  /** Original import query, used when a provider returns a different canonical name. */
+  requestedName?: string;
   name: string;
   imageUrls: string[];
   set?: string | undefined;
@@ -164,6 +172,7 @@ export interface ScryfallCard {
   cmc?: number;
   type_line?: string;
   rarity?: string;
+  securityStamp?: string;
   released_at?: string;
   layout?: string; // Card layout (e.g., 'transform', 'modal_dfc', 'normal')
   prints?: PrintInfo[];

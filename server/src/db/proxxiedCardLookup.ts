@@ -145,11 +145,11 @@ export function lookupCardByName(
 const INSERT_CARD_SQL = `
   INSERT OR REPLACE INTO cards (
     id, oracle_id, name, set_code, collector_number, lang,
-    colors, mana_cost, cmc, type_line, rarity, layout,
+    colors, mana_cost, cmc, type_line, rarity, layout, security_stamp,
     image_uris, card_faces, all_parts
   ) VALUES (
     @id, @oracle_id, @name, @set_code, @collector_number, @lang,
-    @colors, @mana_cost, @cmc, @type_line, @rarity, @layout,
+    @colors, @mana_cost, @cmc, @type_line, @rarity, @layout, @security_stamp,
     @image_uris, @card_faces, @all_parts
   )
 `;
@@ -173,6 +173,7 @@ function mapCardToSqlParams(card: ScryfallApiCard) {
     type_line: card.type_line || null,
     rarity: card.rarity || null,
     layout: card.layout || null,
+    security_stamp: card.security_stamp || null,
     image_uris: card.image_uris ? JSON.stringify(card.image_uris) : null,
     card_faces: card.card_faces ? JSON.stringify(card.card_faces) : null,
     // Store '[]' for cards without tokens so we can distinguish "never fetched" (null) from "has no tokens" ([])
@@ -275,6 +276,7 @@ interface CardRow {
   type_line: string | null;
   rarity: string | null;
   layout: string | null;
+  security_stamp: string | null;
   image_uris: string | null;
   card_faces: string | null;
   all_parts: string | null;
@@ -299,6 +301,7 @@ function rowToScryfallCard(row: CardRow): ScryfallApiCard {
     type_line: row.type_line || undefined,
     rarity: row.rarity || undefined,
     layout: row.layout || undefined,
+    security_stamp: row.security_stamp || undefined,
     image_uris: row.image_uris ? JSON.parse(row.image_uris) : undefined,
     card_faces: row.card_faces ? JSON.parse(row.card_faces) : undefined,
     all_parts: row.all_parts ? JSON.parse(row.all_parts) : undefined,

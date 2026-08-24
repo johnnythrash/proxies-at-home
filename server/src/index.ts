@@ -9,6 +9,7 @@ import { streamRouter } from "./routes/streamRouter.js";
 import { mpcAutofillRouter } from "./routes/mpcAutofillRouter.js";
 import { scryfallRouter } from "./routes/scryfallRouter.js";
 import { tcgdexRouter } from "./routes/tcgdexRouter.js";
+import { palworldRouter } from "./routes/palworldRouter.js";
 import { shareRouter, cleanupExpiredShares } from "./routes/shareRouter.js";
 import { initDatabase } from "./db/db.js";
 import { startImportScheduler } from "./services/importScheduler.js";
@@ -62,6 +63,7 @@ export function startServer(port: number = 3001): Promise<number> {
   app.use("/api/mpcfill", mpcAutofillRouter);
   app.use("/api/scryfall", scryfallRouter);
   app.use("/api/tcgdex", tcgdexRouter);
+  app.use("/api/palworld", palworldRouter);
   app.use("/api/share", shareRouter);
 
   return new Promise((resolve) => {

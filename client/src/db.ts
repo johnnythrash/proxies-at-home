@@ -586,7 +586,7 @@ class ProxxiedDexie extends Dexie {
 }
 
 // Cache version for metadata - bump when adding new required fields
-export const METADATA_CACHE_VERSION = 2;
+export const METADATA_CACHE_VERSION = 3;
 
 export type JsonObject = { [key: string]: Json };
 

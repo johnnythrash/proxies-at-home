@@ -50,6 +50,7 @@ interface EnrichedCardData {
     cmc?: number;
     type_line?: string;
     rarity?: string;
+    securityStamp?: string;
     lang?: string;
     // DFC Support
     layout?: string;
@@ -110,7 +111,8 @@ export function useCardEnrichment() {
             // Note: Dexie may store booleans as true/false or 1/0 depending on version
             // Use filter on all cards for reliability
             const unenrichedCards = allCards.filter((card) => {
-                if (!card.needsEnrichment) return false;
+                const needsStampMetadata = card.source === ImageSource.Scryfall && card.securityStamp === undefined;
+                if (!card.needsEnrichment && !needsStampMetadata) return false;
                 // Skip back cards (cardbacks) - they never need metadata enrichment
                 if (card.linkedFrontId) return false;
                 // Skip cards using cardback images - they're not real Magic cards
@@ -398,6 +400,10 @@ export function useCardEnrichment() {
                                     colors: data.colors,
                                     cmc: data.cmc,
                                     rarity: data.rarity,
+                                    securityStamp: data.securityStamp ?? 'none',
+                                    ...(data.securityStamp !== 'oval' && card.overrides?.removeRarityStamp ? {
+                                        overrides: { ...card.overrides, removeRarityStamp: false },
+                                    } : {}),
                                     lang: data.lang,
                                     needsEnrichment: false,
                                     enrichmentRetryCount: undefined,

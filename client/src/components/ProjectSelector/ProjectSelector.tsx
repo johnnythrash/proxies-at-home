@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Check, Trash2, Edit2, Share2, RefreshCw, AlertCircle, FolderPlus } from "lucide-react";
+import { Check, Trash2, Edit2, Share2, RefreshCw, AlertCircle, FolderPlus, FolderCog } from "lucide-react";
 import { useProjectStore, useSettingsStore } from "@/store";
 import { SelectDropdown } from "@/components/common";
 import { Button, TextInput, Label, Modal, ModalHeader, ModalBody, ModalFooter } from "flowbite-react";
@@ -11,6 +11,7 @@ import { useToastStore } from "@/store/toast";
 import { useShallow } from "zustand/react/shallow";
 import { useShareSync } from "@/hooks/useShareSync";
 import { debugLog } from "@/helpers/debug";
+import { ProjectManagerModal } from "./ProjectManagerModal";
 
 export function ProjectSelector() {
     const projects = useProjectStore((state) => state.projects);
@@ -21,6 +22,7 @@ export function ProjectSelector() {
     const renameProject = useProjectStore((state) => state.renameProject);
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isManagerOpen, setIsManagerOpen] = useState(false);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -86,9 +88,14 @@ export function ProjectSelector() {
 
     const confirmDelete = async () => {
         if (projectToDelete) {
-            await deleteProject(projectToDelete.id);
-            setProjectToDelete(null);
-            setIsDeleteModalOpen(false);
+            try {
+                await deleteProject(projectToDelete.id);
+                setProjectToDelete(null);
+                setIsDeleteModalOpen(false);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Failed to delete project";
+                useToastStore.getState().showErrorToast(message);
+            }
         }
     };
 
@@ -255,7 +262,7 @@ export function ProjectSelector() {
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center">
                                         <button
                                             onClick={(e) => handleRenameClick(e, project)}
                                             className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-blue-600 transition-colors"
@@ -264,16 +271,14 @@ export function ProjectSelector() {
                                             <Edit2 className="w-3.5 h-3.5" />
                                         </button>
 
-                                        {/* Delete action (only if strictly more than 1 project) */}
-                                        {projects.length > 1 && (
-                                            <button
-                                                onClick={(e) => handleDeleteClick(e, project)}
-                                                className="p-1.5 rounded hover:bg-red-100 text-gray-500 hover:text-red-500 transition-colors ml-1"
-                                                title="Delete Project"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={(e) => handleDeleteClick(e, project)}
+                                            className="p-1.5 rounded hover:bg-red-100 text-gray-500 hover:text-red-500 transition-colors ml-1"
+                                            title="Delete Project"
+                                            aria-label={"Delete " + project.name}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -290,6 +295,15 @@ export function ProjectSelector() {
                 >
                     <FolderPlus className="w-5 h-5" />
                     <span className="text-sm font-medium">New Project</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setIsManagerOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 cursor-pointer rounded-md border border-gray-300 bg-white hover:bg-gray-50 px-4 py-2 text-gray-700 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                    <FolderCog className="w-5 h-5" />
+                    <span className="text-sm font-medium">Project Manager</span>
                 </button>
 
                 {/* Share Project Button */}
@@ -338,6 +352,8 @@ export function ProjectSelector() {
                     )}
                 </button>
             </div>
+
+            <ProjectManagerModal show={isManagerOpen} onClose={() => setIsManagerOpen(false)} />
 
             {/* Create Project Modal */}
             <Modal

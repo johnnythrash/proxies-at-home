@@ -1,8 +1,7 @@
 import axios from "axios";
-import { pipeline } from "stream/promises";
 import { Readable } from "stream";
-import StreamJsonParser from "stream-json";
-import StreamArray from "stream-json/streamers/StreamArray.js";
+import { createGunzip } from "zlib";
+import { createInterface } from "readline";
 import { getDatabase } from "../db/db.js";
 import { batchInsertCards, getCardCount } from "../db/proxxiedCardLookup.js";
 import {
@@ -19,8 +18,8 @@ const BULK_DATA_API = "https://api.scryfall.com/bulk-data/all-cards";
 const BATCH_SIZE = 10000;
 
 interface BulkDataInfo {
-  download_uri: string;
-  size: number;
+  jsonl_download_uri: string;
+  compressed_size: number;
 }
 
 /**
@@ -28,7 +27,7 @@ interface BulkDataInfo {
  */
 export async function getBulkDataInfo(): Promise<BulkDataInfo> {
   const response = await axios.get<BulkDataInfo>(BULK_DATA_API, {
-    headers: { "User-Agent": "Proxxied/1.0" },
+    headers: { "User-Agent": "Proxxied/1.0", Accept: "application/json" },
   });
   return response.data;
 }
@@ -91,15 +90,18 @@ export async function downloadAndImportBulkData(): Promise<{
 
   // Get bulk data info
   const bulkInfo = await getBulkDataInfo();
-  debugLog(`[Bulk Import] Downloading from: ${bulkInfo.download_uri}`);
+  debugLog(`[Bulk Import] Downloading from: ${bulkInfo.jsonl_download_uri}`);
   debugLog(
-    `[Bulk Import] File size: ${(bulkInfo.size / 1024 / 1024).toFixed(1)} MB`
+    `[Bulk Import] File size: ${(bulkInfo.compressed_size / 1024 / 1024).toFixed(1)} MB`
   );
 
-  // Download as a stream (no file stored to disk)
-  const response = await axios.get(bulkInfo.download_uri, {
+  // Download and stream the gzip-compressed JSON Lines file.
+  const response = await axios.get(bulkInfo.jsonl_download_uri, {
     responseType: "stream",
-    headers: { "User-Agent": "Proxxied/1.0" },
+    headers: {
+      "User-Agent": "Proxxied/1.0",
+      Accept: "application/json",
+    },
   });
 
   let cardsProcessed = 0;
@@ -109,25 +111,20 @@ export async function downloadAndImportBulkData(): Promise<{
   let totalInserted = 0;
   let totalUpdated = 0;
 
-  // Create a transform pipeline to parse the JSON stream
-  const jsonParser = StreamJsonParser.parser();
-  const arrayStreamer = StreamArray.streamArray();
-
-  // Handle stream parsing errors
-  let streamError: Error | null = null;
-  arrayStreamer.on("error", (err: Error) => {
-    console.error("[Bulk Import] Stream parse error:", err.message);
-    streamError = err;
+  const compressedStream = response.data as Readable;
+  const lines = createInterface({
+    input: compressedStream.pipe(createGunzip()),
+    crlfDelay: Infinity,
   });
 
-  // Process cards as they come in
-  arrayStreamer.on("data", ({ value }: { value: ScryfallBulkCard }) => {
-    // Convert bulk card format to our ScryfallApiCard format
+  for await (const line of lines) {
+    if (!line.trim()) continue;
+
+    const value = JSON.parse(line) as ScryfallBulkCard;
     const card = convertBulkCard(value);
     batch.push(card);
     cardsProcessed++;
 
-    // Parse and index types for fast lookups
     const types = parseTypeLine(value.type_line || "");
     const isToken = types.includes("token");
 
@@ -135,18 +132,14 @@ export async function downloadAndImportBulkData(): Promise<{
       typeEntries.push({ cardId: value.id, type, isToken });
     }
 
-    // Register token names for t: prefix detection
     if (isToken) {
       tokenNames.push(value.name);
     }
 
-    // Insert in batches for better performance
     if (batch.length >= BATCH_SIZE) {
       const result = batchInsertCards(batch);
       totalInserted += result.inserted;
       totalUpdated += result.updated;
-
-      // Batch insert auxiliary data
       batchInsertCardTypes(typeEntries);
       batchInsertTokenNames(tokenNames);
 
@@ -154,20 +147,11 @@ export async function downloadAndImportBulkData(): Promise<{
       typeEntries = [];
       tokenNames = [];
 
-      if (cardsProcessed % BATCH_SIZE === 0) {
-        debugLog(
-          `[Bulk Import] Processed ${cardsProcessed} cards... (${totalInserted} new, ${totalUpdated} updated)`
-        );
-      }
+      debugLog(
+        "[Bulk Import] Processed " + cardsProcessed + " cards... (" +
+        totalInserted + " new, " + totalUpdated + " updated)"
+      );
     }
-  });
-
-  // Wait for the stream to complete
-  await pipeline(response.data as Readable, jsonParser, arrayStreamer);
-
-  // Check if stream had parsing errors
-  if (streamError) {
-    throw streamError;
   }
 
   // Insert any remaining cards
@@ -214,7 +198,9 @@ interface ScryfallBulkCard {
   cmc?: number;
   type_line?: string;
   rarity?: string;
+  security_stamp?: string;
   layout?: string;
+  games?: string[];
   image_uris?: { png?: string;[key: string]: string | undefined };
   card_faces?: Array<{
     name?: string;
@@ -229,6 +215,10 @@ interface ScryfallBulkCard {
     type_line?: string;
     uri?: string;
   }>;
+}
+
+export function shouldImportBulkCard(card: ScryfallBulkCard): boolean {
+  return card.games?.includes("paper") === true && card.layout !== "art_series";
 }
 
 /**
@@ -249,6 +239,7 @@ function convertBulkCard(
     cmc: bulk.cmc,
     type_line: bulk.type_line,
     rarity: bulk.rarity,
+    security_stamp: bulk.security_stamp,
     layout: bulk.layout,
     image_uris: bulk.image_uris,
     card_faces: bulk.card_faces,

@@ -7,7 +7,7 @@
     "test": "vitest run --silent",
     "test:ui": "vitest --ui --coverage.enabled=true",
     "dev": "nodemon --exec tsx src/index.ts",
-    "build": "rimraf dist && tsc -p tsconfig.build.json && cpx \"cardbacks/**/*\" dist/server/cardbacks",
+    "build": "rimraf dist/server/src dist/shared dist/server/cardbacks && tsc -p tsconfig.build.json && cpx \"cardbacks/**/*\" dist/server/cardbacks",
     "start": "node dist/server/src/index.js",
     "lint": "eslint ."
   },

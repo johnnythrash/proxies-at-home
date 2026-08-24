@@ -9,6 +9,7 @@ import { useScryfallSearch } from "@/hooks/useScryfallSearch";
 import { useScryfallPrints } from "@/hooks/useScryfallPrints";
 import { useMpcSearch } from "@/hooks/useMpcSearch";
 import { usePokemonSearch, usePokemonPrints } from "@/hooks/usePokemonSearch";
+import { usePalworldSearch, usePalworldPrints } from "@/hooks/usePalworldSearch";
 import { useSettingsStore } from "@/store";
 import {
   filterPrintsByFace,
@@ -31,6 +32,7 @@ import {
   type UploadLibraryItem,
 } from "@/helpers/uploadLibrary";
 import { ImageSource } from '@/types';
+import type { TcgId } from '@/config/tcgConfig';
 import { UploadLibraryGrid } from '../Upload/UploadLibraryGrid';
 /**
  * Hook to maintain a stable sort key that only updates on specific triggers:
@@ -128,6 +130,8 @@ export interface CardArtContentProps {
   cardTypeLine?: string;
   /** Initial prints to prevent re-fetching if already available */
   initialPrints?: PrintInfo[];
+  /** Provider override for an existing card when the global import TCG differs. */
+  tcgOverride?: TcgId;
 }
 
 const EMPTY_ARRAY: string[] = [];
@@ -155,6 +159,7 @@ export function CardArtContent({
   isActive,
   cardTypeLine,
   initialPrints,
+  tcgOverride,
 }: CardArtContentProps) {
   const stripQuery = useCallback((url?: string) => url?.split("?")[0], []);
   const [uploadLibraryItems, setUploadLibraryItems] = useState<UploadLibraryItem[]>([]);
@@ -240,8 +245,10 @@ export function CardArtContent({
       hasInitializedScryfallFilters.current = true;
     }
   }, [favoriteScryfallSets]);
-  const activeTcg = useSettingsStore((s) => s.activeTcg ?? 'mtg');
+  const configuredTcg = useSettingsStore((s) => s.activeTcg ?? 'mtg');
+  const activeTcg = tcgOverride ?? configuredTcg;
   const isPokemon = activeTcg === 'pokemon' && artSource === 'scryfall';
+  const isPalworld = activeTcg === 'palworld' && artSource === 'scryfall';
 
   const favoritePokemonSets = useUserPreferencesStore(
     (s) => s.preferences?.favoritePokemonSets || EMPTY_ARRAY
@@ -286,24 +293,28 @@ export function CardArtContent({
   const [pokemonExactMatch, setPokemonExactMatch] = useState(false);
 
   const scryfallSearchData = useScryfallSearch(query, {
-    autoSearch: !isPokemon && artSource === "scryfall" && mode === "search" && !!query.trim(),
+    autoSearch: !isPokemon && !isPalworld && artSource === "scryfall" && mode === "search" && !!query.trim(),
     unique: scryfallSearchMode,
   });
   const scryfallPrintsData = useScryfallPrints({
     name: query,
-    enabled: !isPokemon && artSource === "scryfall" && mode === "prints",
-    initialPrints: isPokemon ? undefined : initialPrints,
+    enabled: !isPokemon && !isPalworld && artSource === "scryfall" && mode === "prints",
+    initialPrints: isPokemon || isPalworld ? undefined : initialPrints,
   });
 
   const pokemonSearchData = usePokemonSearch(query, {
     autoSearch: isPokemon && mode === "search" && !!query.trim(),
   });
   const pokemonPrintsData = usePokemonPrints(query, isPokemon && mode === "prints");
+  const palworldSearchData = usePalworldSearch(query, isPalworld && mode === "search");
+  const palworldPrintsData = usePalworldPrints(query, isPalworld && mode === "prints");
 
-  // Unified data: swap Scryfall for Pokemon when in Pokemon mode
-  const activeSearchData = isPokemon ? pokemonSearchData : scryfallSearchData;
+  // Unified data: swap Scryfall for the active game's provider.
+  const activeSearchData = isPokemon ? pokemonSearchData : isPalworld ? palworldSearchData : scryfallSearchData;
   const activePrintsData = isPokemon
     ? { prints: pokemonPrintsData.prints as PrintInfo[], isLoading: pokemonPrintsData.isLoading, hasSearched: pokemonPrintsData.prints.length > 0 }
+    : isPalworld
+      ? palworldPrintsData
     : scryfallPrintsData;
 
 
@@ -399,7 +410,7 @@ export function CardArtContent({
   const [pokemonSetNames, setPokemonSetNames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
-    if (artSource === "scryfall" && !isPokemon) {
+    if (artSource === "scryfall" && !isPokemon && !isPalworld) {
       fetchScryfallSets().then((sets) => {
         const map = new Map();
         sets.forEach((s) =>
@@ -419,7 +430,7 @@ export function CardArtContent({
         setPokemonSetNames(map);
       });
     }
-  }, [artSource, isPokemon, pokemonSetNames.size]);
+  }, [artSource, isPokemon, isPalworld, pokemonSetNames.size]);
 
   // Available Sets Logic
   // If browsing (empty query), allow selecting from ALL sets
@@ -460,10 +471,10 @@ export function CardArtContent({
 
   // Initialize sort from preferences when available (Scryfall only)
   useEffect(() => {
-    if (!isPokemon && userScryfallSort) {
+    if (!isPokemon && !isPalworld && userScryfallSort) {
       setScryfallSortBy(userScryfallSort);
     }
-  }, [userScryfallSort, isPokemon]);
+  }, [userScryfallSort, isPokemon, isPalworld]);
 
   const [scryfallSortDir, setScryfallSortDir] = useState<"asc" | "desc">(
     "desc"

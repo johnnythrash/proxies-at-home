@@ -73,6 +73,26 @@ export type GridDimensions = {
     totalGridHeightMm: number;
 };
 
+/** Convert physical slot sizes to raster positions without accumulating the
+ * rounding error from each preceding slot. */
+export function computePixelOffsets(
+    sizesMm: number[],
+    spacingMm: number,
+    dpi: number,
+): { offsetsPx: number[]; totalPx: number } {
+    const mmToPx = (mm: number) => Math.round(mm / CONSTANTS.MM_PER_IN * dpi);
+    const offsetsPx: number[] = [];
+    let cumulativeMm = 0;
+
+    sizesMm.forEach((sizeMm, index) => {
+        offsetsPx.push(mmToPx(cumulativeMm));
+        cumulativeMm += sizeMm;
+        if (index < sizesMm.length - 1) cumulativeMm += spacingMm;
+    });
+
+    return { offsetsPx, totalPx: mmToPx(cumulativeMm) };
+}
+
 export function computeGridDimensions(
     layouts: CardLayoutInfo[],
     columns: number,

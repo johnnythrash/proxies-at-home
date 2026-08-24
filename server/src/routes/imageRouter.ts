@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { getCardDataForCardInfo, batchFetchCards } from "../utils/getCardImagesPaged.js";
 import { extractTokenParts } from "../utils/tokenUtils.js";
+import { serverDataDir } from "../utils/runtimePaths.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,7 +96,7 @@ const imageFetchLimit = pLimit(10);
 
 const imageRouter = express.Router();
 
-const cacheDir = path.join(__dirname, "..", "..", "data", "cached-images");
+const cacheDir = path.join(serverDataDir, "cached-images");
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir, { recursive: true });
 }
@@ -199,6 +200,7 @@ interface EnrichedCard {
   rarity?: string;
   lang?: string;
   layout?: string;
+  securityStamp?: string;
   card_faces?: Array<{
     name: string;
     type_line?: string;
@@ -248,6 +250,7 @@ function extractEnrichedCard(
     rarity: data.rarity,
     lang: data.lang,
     layout: data.layout,
+    securityStamp: data.security_stamp ?? 'none',
     card_faces: data.card_faces?.map(f => ({
       name: f.name || "",
       type_line: f.type_line,

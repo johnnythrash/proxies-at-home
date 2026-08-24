@@ -36,7 +36,12 @@ export async function initCatalogs(): Promise<void> {
 
         const responses = await Promise.all(
             catalogEndpoints.map(endpoint =>
-                fetch(`https://api.scryfall.com/catalog/${endpoint}`)
+                fetch("https://api.scryfall.com/catalog/" + endpoint, {
+                    headers: {
+                        "User-Agent": "Proxxied/1.0",
+                        Accept: "application/json",
+                    },
+                })
                     .then(r => r.json())
                     .catch(() => ({ data: [] }))
             )
@@ -48,7 +53,12 @@ export async function initCatalogs(): Promise<void> {
             catalog.data?.forEach((t: string) => validTypes.add(t.toLowerCase()));
         }
 
-        console.log(`[Catalog] Loaded ${validTypes.size} types from ${catalogEndpoints.length} Scryfall catalogs`);
+if (validTypes.size === 0) {
+            addFallbackTypes();
+            console.log("[Catalog] Catalog requests returned no types; using " + validTypes.size + " fallback types");
+        } else {
+            console.log("[Catalog] Loaded " + validTypes.size + " types from " + catalogEndpoints.length + " Scryfall catalogs");
+        }
     } catch (error) {
         console.error('[Catalog] Failed to load catalogs from Scryfall:', error);
         // Fallback: Add common types that we know exist
@@ -61,6 +71,16 @@ export async function initCatalogs(): Promise<void> {
         fallbackTypes.forEach(t => validTypes.add(t));
         console.log(`[Catalog] Using ${validTypes.size} fallback types`);
     }
+}
+
+function addFallbackTypes(): void {
+    const fallbackTypes = [
+        'artifact', 'creature', 'enchantment', 'instant', 'land',
+        'planeswalker', 'sorcery', 'battle', 'kindred',
+        'human', 'soldier', 'elf', 'goblin', 'wizard', 'dragon',
+        'legendary', 'basic', 'snow',
+    ];
+    fallbackTypes.forEach(t => validTypes.add(t));
 }
 
 /**

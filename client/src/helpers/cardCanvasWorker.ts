@@ -171,6 +171,8 @@ export const FS_CARD_CANVAS = getWorkerAdjustmentShader(ADJUSTMENT_FRAGMENT);
 export interface UniformLocations {
     u_baseTexture: WebGLUniformLocation | null;
     u_resolution: WebGLUniformLocation | null;
+    // Experimental cleanup
+    u_removeRarityStamp: WebGLUniformLocation | null;
     // Basic adjustments
     u_brightness: WebGLUniformLocation | null;
     u_contrast: WebGLUniformLocation | null;
@@ -354,6 +356,8 @@ export function updateUniforms(
     // This makes 1.0/uResolution larger, effectively scaling up the kernel size
     gl.uniform2f(uniforms.u_resolution, width / kernelScale, height / kernelScale);
 
+    gl.uniform1f(uniforms.u_removeRarityStamp, params.removeRarityStamp ? 1.0 : 0.0);
+
     // Basic adjustments (note: shader expects uBrightness range -50 to +50 converted to /255)
     // Our params use normalized values, so we scale appropriately
     gl.uniform1f(uniforms.u_brightness, params.brightness); // Already in -100..+100 range
@@ -432,6 +436,7 @@ export function overridesToRenderParams(overrides: CardOverrides, globalDarkenMo
         darkenBrightness: overrides.darkenBrightness ?? DEFAULT_RENDER_PARAMS.darkenBrightness,
         darkenUseGlobalSettings: overrides.darkenUseGlobalSettings ?? DEFAULT_RENDER_PARAMS.darkenUseGlobalSettings,
         darkenAutoDetect: overrides.darkenAutoDetect ?? DEFAULT_RENDER_PARAMS.darkenAutoDetect,
+        removeRarityStamp: overrides.removeRarityStamp ?? DEFAULT_RENDER_PARAMS.removeRarityStamp,
         brightness: overrides.brightness ?? DEFAULT_RENDER_PARAMS.brightness,
         contrast: overrides.contrast ?? DEFAULT_RENDER_PARAMS.contrast,
         saturation: overrides.saturation ?? DEFAULT_RENDER_PARAMS.saturation,
@@ -529,6 +534,8 @@ export async function renderCardWithOverridesWorker(
     const uniforms: UniformLocations = {
         u_baseTexture: gl.getUniformLocation(program, 'u_baseTexture'),
         u_resolution: gl.getUniformLocation(program, 'u_resolution'),
+        // Experimental cleanup
+        u_removeRarityStamp: gl.getUniformLocation(program, 'u_removeRarityStamp'),
         // Basic adjustments
         u_brightness: gl.getUniformLocation(program, 'u_brightness'),
         u_contrast: gl.getUniformLocation(program, 'u_contrast'),

@@ -111,9 +111,32 @@ export const TCG_CONFIGS: Record<string, TcgConfig> = {
             { value: 'type', label: 'Type' },
         ],
     },
+    palworld: {
+        id: 'palworld',
+        label: 'Palworld',
+        activeButtonClass: 'bg-cyan-600 text-white',
+        artSources: [
+            { id: 'palworld', label: 'Local collection', color: '#0891b2' },
+        ],
+        emptyState: { message: 'Palworld artwork is loaded from the local server collection.' },
+        noResultsLabel: 'No matching Palworld card found.',
+        decklistPlaceholder:
+            `4x Jormuntide Ignis – Savage Lava Dragon\n2x EBP01-002\nUse a variant number for specific artwork:\n1x EBP01-001OSR`,
+        filters: {
+            manaValue: false,
+            colors: false,
+            categories: false,
+            energyType: false,
+            matchType: false,
+        },
+        sortOptions: [
+            { value: 'manual', label: 'Manual' },
+            { value: 'name', label: 'Name' },
+        ],
+    },
 };
 
-export const TCG_ORDER: TcgId[] = ['mtg', 'pokemon'];
+export const TCG_ORDER: TcgId[] = ['mtg', 'pokemon', 'palworld'];
 
 export function getTcgConfig(tcgId: TcgId): TcgConfig {
     return TCG_CONFIGS[tcgId] ?? TCG_CONFIGS['mtg'];

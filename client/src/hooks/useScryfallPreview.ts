@@ -89,6 +89,7 @@ export function useScryfallPreview(query: string) {
                                 cmc: data.cmc,
                                 type_line: data.type_line,
                                 rarity: data.rarity,
+                                securityStamp: data.security_stamp ?? 'none',
                             };
                             searchCache.current[cacheKey] = [card];
                             setSetVariations([card]);

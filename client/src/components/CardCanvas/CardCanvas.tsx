@@ -22,6 +22,7 @@ interface UniformLocations {
     u_darkenEdgeWidth: WebGLUniformLocation | null;
     u_darkenAmount: WebGLUniformLocation | null;
     u_darkenBrightness: WebGLUniformLocation | null;
+    u_removeRarityStamp: WebGLUniformLocation | null;
     u_brightness: WebGLUniformLocation | null;
     u_contrast: WebGLUniformLocation | null;
     u_saturation: WebGLUniformLocation | null;
@@ -131,6 +132,7 @@ function initWebGL(canvas: HTMLCanvasElement): WebGLState {
         u_darkenEdgeWidth: gl.getUniformLocation(program, 'u_darkenEdgeWidth'),
         u_darkenAmount: gl.getUniformLocation(program, 'u_darkenAmount'),
         u_darkenBrightness: gl.getUniformLocation(program, 'u_darkenBrightness'),
+        u_removeRarityStamp: gl.getUniformLocation(program, 'u_removeRarityStamp'),
         u_brightness: gl.getUniformLocation(program, 'u_brightness'),
         u_contrast: gl.getUniformLocation(program, 'u_contrast'),
         u_saturation: gl.getUniformLocation(program, 'u_saturation'),
@@ -187,6 +189,7 @@ function updateUniforms(
     gl.uniform1f(uniforms.u_darkenEdgeWidth, params.darkenEdgeWidth);
     gl.uniform1f(uniforms.u_darkenAmount, params.darkenAmount);
     gl.uniform1f(uniforms.u_darkenBrightness, params.darkenBrightness);
+    gl.uniform1f(uniforms.u_removeRarityStamp, params.removeRarityStamp ? 1.0 : 0.0);
     gl.uniform1f(uniforms.u_brightness, params.brightness);
     gl.uniform1f(uniforms.u_contrast, params.contrast);
     gl.uniform1f(uniforms.u_saturation, params.saturation);

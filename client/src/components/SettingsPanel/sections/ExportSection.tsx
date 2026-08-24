@@ -55,7 +55,7 @@ export function ExportSection({ cards }: Props) {
     }, [
         pageWidth, pageHeight, pageUnit, columns, rows,
         bleedEdge, bleedEdgeWidth, bleedEdgeUnit,
-        cardSpacingMm, cardPositionX, cardPositionY, registrationMarksPortrait
+        cardSpacingMm, cardPositionX, cardPositionY
     ]);
 
     const maxSafeDpiForPage = useMemo(() => {

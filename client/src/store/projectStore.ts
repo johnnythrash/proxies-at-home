@@ -184,6 +184,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
         } catch (e) {
             console.error('[ProjectStore] Delete failed:', e);
+            throw e;
         } finally {
             set({ isLoading: false });
         }

@@ -51,6 +51,7 @@ export class AdjustmentFilter extends Filter {
             resources: {
                 adjustUniforms: {
                     uResolution: { value: new Float32Array([1, 1]), type: 'vec2<f32>' },
+                    uRemoveRarityStamp: { value: 0, type: 'f32' },
                     uBrightness: { value: 0, type: 'f32' },
                     uContrast: { value: 1, type: 'f32' },
                     uSaturation: { value: 1, type: 'f32' },
@@ -114,6 +115,13 @@ export class AdjustmentFilter extends Filter {
     set textureResolution(value: [number, number]) {
         this.resources.adjustUniforms.uniforms.uResolution[0] = value[0];
         this.resources.adjustUniforms.uniforms.uResolution[1] = value[1];
+    }
+
+    get removeRarityStamp(): boolean {
+        return this.resources.adjustUniforms.uniforms.uRemoveRarityStamp > 0;
+    }
+    set removeRarityStamp(value: boolean) {
+        this.resources.adjustUniforms.uniforms.uRemoveRarityStamp = value ? 1 : 0;
     }
 
     get brightness(): number {

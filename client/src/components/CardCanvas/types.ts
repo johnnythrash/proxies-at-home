@@ -29,6 +29,9 @@ export interface RenderParams {
     /** Whether to auto-detect darkness from histogram (true) or use manual contrast/brightness (false) */
     darkenAutoDetect: boolean;
 
+    // === Experimental cleanup ===
+    removeRarityStamp: boolean;
+
     // === Image Adjustments ===
     /** Global brightness adjustment (-100 to +100) */
     brightness: number;
@@ -146,6 +149,7 @@ export const DEFAULT_RENDER_PARAMS: RenderParams = {
     darkenBrightness: -50,
     darkenUseGlobalSettings: true,
     darkenAutoDetect: true,
+    removeRarityStamp: false,
     brightness: 0,
     contrast: 1.0,
     saturation: 1.0,

@@ -193,10 +193,20 @@ export function useArtworkApplication({
 
             const activeTcg = useSettingsStore.getState().activeTcg ?? 'mtg';
             const cfg = getTcgConfig(activeTcg);
-            const isAltBackend = !!cfg.artSources.find(s => s.id === 'tcgdex');
+            const alternateSource = activeCard.source === ImageSource.TCGdex
+                ? ImageSource.TCGdex
+                : activeCard.source === ImageSource.Palworld
+                    ? ImageSource.Palworld
+                    : activeCard.source
+                        ? null
+                        : cfg.artSources.find(s => s.id === 'tcgdex')
+                            ? ImageSource.TCGdex
+                            : cfg.artSources.find(s => s.id === 'palworld')
+                                ? ImageSource.Palworld
+                                : null;
 
-            if (isAltBackend && newImageUrl) {
-                const imageId = await addRemoteImage([newImageUrl], 1, ImageSource.TCGdex);
+            if (alternateSource && newImageUrl) {
+                const imageId = await addRemoteImage([newImageUrl], 1, alternateSource);
                 if (imageId) {
                     await applyArtworkToCards({
                         targetImageId: imageId,
@@ -261,6 +271,7 @@ export function useArtworkApplication({
                         set: resolved.set,
                         number: resolved.number,
                         rarity: resolved.rarity,
+                        securityStamp: resolved.securityStamp,
                         lang: resolved.lang,
                         colors: resolved.colors,
                         cmc: resolved.cmc,
@@ -356,6 +367,7 @@ export function useArtworkApplication({
                             set: resolved.set,
                             number: resolved.number,
                             rarity: resolved.rarity,
+                            securityStamp: resolved.securityStamp,
                             lang: resolved.lang,
                             colors: resolved.colors,
                             cmc: resolved.cmc,

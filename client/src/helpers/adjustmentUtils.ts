@@ -65,6 +65,7 @@ export function hasActiveAdjustments(
     }
 
     // Check boolean/enum settings
+    if (overrides.removeRarityStamp) return true;
     if (overrides.cmykPreview) return true;
     if (overrides.colorReplaceEnabled) return true;
     if (overrides.holoEffect && overrides.holoEffect !== 'none') return true;

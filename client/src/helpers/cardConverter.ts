@@ -20,9 +20,10 @@ export async function convertScryfallToCardOptions(
         isToken?: boolean;
         isBackFaceImport?: boolean; // If user requested the back face name specifically
         projectId?: string; // Optional for compatibility/migrations, but highly recommended
+        source?: ImageSource;
     } = {}
 ): Promise<ResolvedCardData> {
-    const { category, isToken: forceToken, isBackFaceImport = false, projectId } = options;
+    const { category, isToken: forceToken, isBackFaceImport = false, projectId, source = ImageSource.Scryfall } = options;
 
     // DFC handling
     const hasDfcBack = card.card_faces && card.card_faces.length > 1;
@@ -49,10 +50,10 @@ export async function convertScryfallToCardOptions(
     let mainImageId: string | undefined;
     if (isBackFaceImport && frontImageUrl) {
         // User imported back face name - fetch front face art for the card (but we will flip it)
-        mainImageId = await addRemoteImage([frontImageUrl], quantity, 'scryfall', card.prints);
+        mainImageId = await addRemoteImage([frontImageUrl], quantity, source, card.prints);
     } else {
         // Normal case
-        mainImageId = await addRemoteImage(card.imageUrls ?? [], quantity, 'scryfall', card.prints);
+        mainImageId = await addRemoteImage(card.imageUrls ?? [], quantity, source, card.prints);
     }
 
     // Token Detection
@@ -76,6 +77,7 @@ export async function convertScryfallToCardOptions(
             cmc: card.cmc,
             type_line: card.type_line,
             rarity: card.rarity,
+            securityStamp: card.securityStamp,
             mana_cost: card.mana_cost,
             token_parts: card.token_parts,
             needs_token: card.needs_token,
@@ -83,7 +85,7 @@ export async function convertScryfallToCardOptions(
             category,
             needsEnrichment: false,  // Scryfall data is complete
             projectId,
-            source: ImageSource.Scryfall,
+            source,
         });
     }
 

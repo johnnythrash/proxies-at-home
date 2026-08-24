@@ -1,15 +1,14 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { serverDataDir } from '../utils/runtimePaths.js';
 
 // Database file location (persists in server/data directory)
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'proxxied-cards.db');
+fs.mkdirSync(serverDataDir, { recursive: true });
+const DB_PATH = path.join(serverDataDir, 'proxxied-cards.db');
 
 // Current schema version - increment when adding migrations
-const CURRENT_DB_VERSION = 5;
+const CURRENT_DB_VERSION = 6;
 
 // Migration definitions - each entry upgrades from (version-1) to (version)
 // Add new migrations to the end of this array
@@ -97,6 +96,7 @@ const migrations: Migration[] = [
       );`,
     ],
   },
+
   {
     version: 5,
     description: 'Add shares table for deck sharing feature',
@@ -110,6 +110,11 @@ const migrations: Migration[] = [
       );`,
       'CREATE INDEX IF NOT EXISTS idx_shares_expires ON shares(expires_at);',
     ],
+  },
+  {
+    version: 6,
+    description: 'Add Scryfall security stamp metadata',
+    up: ['ALTER TABLE cards ADD COLUMN security_stamp TEXT;'],
   },
 ];
 
@@ -199,6 +204,7 @@ export function initDatabase(): Database.Database {
       type_line TEXT,                   -- e.g., "Sorcery // Land"
       rarity TEXT,                      -- common, uncommon, rare, mythic
       layout TEXT,                      -- normal, transform, mdfc, split, etc.
+      security_stamp TEXT,              -- oval, triangle, acorn, arena, circle, or null
       
       -- Image data
       image_uris TEXT,                  -- JSON: { "png": "https://...", ... }

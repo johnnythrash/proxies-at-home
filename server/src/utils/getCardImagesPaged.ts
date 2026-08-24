@@ -125,6 +125,7 @@ export interface ScryfallApiCard {
   type_line?: string;
   layout?: string;
   rarity?: string;
+  security_stamp?: string;
   set?: string;
   collector_number?: string;
   lang?: string;

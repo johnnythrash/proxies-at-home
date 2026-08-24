@@ -121,6 +121,11 @@ export function ArtworkTabContent({
     if (!modalCard) return null;
 
     const cardName = selectedFace === 'back' ? tabLabels.back : tabLabels.front;
+    const cardTcg = modalCard.source === ImageSource.Palworld
+        ? 'palworld'
+        : modalCard.source === ImageSource.TCGdex
+            ? 'pokemon'
+            : 'mtg';
 
     return (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -223,6 +228,7 @@ export function ArtworkTabContent({
                                 cardTypeLine={modalCard.type_line}
                                 filtersCollapsed={mpcFiltersCollapsed}
                                 onFilterCountChange={setActiveFilterCount}
+                                tcgOverride={cardTcg}
                             />
                         </div>
                     )
@@ -290,6 +296,7 @@ export function ArtworkTabContent({
                             value={artSource}
                             onChange={setArtSource}
                             showUploadLibrary={hasUploadLibraryItems}
+                            tcgOverride={cardTcg}
                             className="w-full"
                         />
                     </div>
@@ -304,6 +311,7 @@ export function ArtworkTabContent({
                                 value={artSource}
                                 onChange={setArtSource}
                                 showUploadLibrary={hasUploadLibraryItems}
+                                tcgOverride={cardTcg}
                                 vertical={false}
                             />
                         </div>

@@ -54,6 +54,7 @@ export interface CardOverrides {
     darkenAmount?: number;
     darkenBrightness?: number;
     darkenAutoDetect?: boolean;
+    removeRarityStamp?: boolean;
     // Basic adjustments
     brightness?: number;
     contrast?: number;
@@ -157,6 +158,9 @@ export function applyAdjustmentFilter(
     holoAnimation: { angle: number; strength: number }
 ): void {
     filter.textureResolution = textureSize;
+
+    // Experimental cleanup
+    filter.removeRarityStamp = overrides?.removeRarityStamp ?? false;
 
     // Basic adjustments
     filter.brightness = overrides?.brightness ?? 0;

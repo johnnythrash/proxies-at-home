@@ -5,6 +5,7 @@ import { normalizeCardInfos } from "../utils/cardUtils.js";
 import { debugLog } from "../utils/debug.js";
 import { extractTokenParts } from "../utils/tokenUtils.js";
 import { type ScryfallCard, type CardInfo } from "../../../shared/types.js";
+import { lookupPalworldCard } from "../services/palworldCardService.js";
 
 const tcgdexApi = (lang: string) => `https://api.tcgdex.net/v2/${lang}`;
 
@@ -104,10 +105,10 @@ const streamRouter = express.Router();
  */
 function extractCardImages(card: ScryfallApiCard, requestedFaceName?: string): {
   imageUrls: string[];
-  prints: Array<{ imageUrl: string; set: string; number: string; rarity?: string; faceName?: string }>;
+  prints: Array<{ imageUrl: string; set: string; number: string; rarity?: string; securityStamp?: string; faceName?: string }>;
 } {
   const imageUrls: string[] = [];
-  const prints: Array<{ imageUrl: string; set: string; number: string; rarity?: string; faceName?: string }> = [];
+  const prints: Array<{ imageUrl: string; set: string; number: string; rarity?: string; securityStamp?: string; faceName?: string }> = [];
 
   debugLog(`[extractCardImages] Processing "${card.name}" (${card.set}:${card.collector_number}), requestedFace="${requestedFaceName}"`);
   debugLog(`[extractCardImages] Card has image_uris: ${!!card.image_uris?.png}, card_faces: ${card.card_faces?.length ?? 0}`);
@@ -121,6 +122,7 @@ function extractCardImages(card: ScryfallApiCard, requestedFaceName?: string): {
       set: card.set ?? "",
       number: card.collector_number ?? "",
       rarity: card.rarity,
+      securityStamp: card.security_stamp ?? 'none',
     });
   } else if (card.card_faces) {
     // DFC - check if a specific face was requested
@@ -153,6 +155,7 @@ function extractCardImages(card: ScryfallApiCard, requestedFaceName?: string): {
           set: card.set ?? "",
           number: card.collector_number ?? "",
           rarity: card.rarity,
+          securityStamp: card.security_stamp ?? 'none',
           faceName: face.name,
         });
       }
@@ -225,6 +228,7 @@ function buildCardResponse(
     cmc: card.cmc,
     type_line: card.type_line,
     rarity: card.rarity,
+    securityStamp: card.security_stamp ?? 'none',
     card_faces,
     token_parts, // Return [] if empty so client knows it was checked
     needs_token: needs_token || undefined,
@@ -286,6 +290,32 @@ streamRouter.post("/cards", async (req: Request, res: Response) => {
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
           res.write(`event: card-error\ndata: ${JSON.stringify({ query: ci, error: msg })}\n\n`);
+        } finally {
+          res.write(`event: progress\ndata: ${JSON.stringify({ processed, total })}\n\n`);
+        }
+      }
+      res.write("event: done\ndata: {}\n\n");
+      clearInterval(keepAliveInterval);
+      res.end();
+      return;
+    }
+
+    // 4c. Palworld path: resolve names/card numbers against the local catalog.
+    if (req.body.tcg === 'palworld') {
+      let processed = 0;
+      for (const ci of cardQueries) {
+        if (isClosed) break;
+        processed++;
+        try {
+          const card = lookupPalworldCard(ci);
+          if (card) {
+            res.write(`event: card-found\ndata: ${JSON.stringify({ ...card, requestedName: ci.name })}\n\n`);
+          } else {
+            res.write(`event: card-error\ndata: ${JSON.stringify({ query: ci, error: "Card not found in the local Palworld collection." })}\n\n`);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          res.write(`event: card-error\ndata: ${JSON.stringify({ query: ci, error: message })}\n\n`);
         } finally {
           res.write(`event: progress\ndata: ${JSON.stringify({ processed, total })}\n\n`);
         }
